@@ -1,0 +1,491 @@
+<h1>演示流程可行性分析与任务分解</h1>
+
+<callout emoji="📌" background-color="light-blue" border-color="blue">
+<p><b>本文回答三个问题：</b>① <b>能不能做？</b>② 做的话，把卫星的<b>感知 / 决策 / 执行</b>步骤拆解出来（供动画文字框使用）③ <b>未来能否真实落地</b>（逐项标注）。</p>
+<p><b>定位说明：</b>本演示的交付物是<b>网页科普动画</b>，不需要真实算法程序实现。文中"未来能否落地"的判断仅供后续立项参考，不影响动画本身的实现。</p>
+</callout>
+
+<h2>一、客户演示流程（原文）</h2>
+
+<blockquote>
+<p>地球地面发射台发送指令（任务）给卫星，去指定位置拍摄月亮</p>
+<p>卫星接收后通过红外、可见光、紫外线、光谱等信息运行到指定位置，调整相机载荷观测月亮（客户说 2° 以内的俯仰角？），观测完成后返回月亮图片</p>
+<p>地球地面发射台发送指令给卫星，去美国上空拍摄标记物</p>
+<p>卫星自主决策飞行，调整姿态</p>
+<p>发现轨道上有异物，自主决策，调整姿态等躲避异物</p>
+<p>到达美国上空，调整姿态拍摄，并传回图片数据</p>
+</blockquote>
+
+<p><b>补充要求（原文摘要）：</b>以上是需要做的动画流程，<b>不需要真实算法程序实现</b>，但要做得直观、比较真实，像科普动画。同时在卫星接受指令后，要根据<b>自感知、自决策、自执行</b>的内核做任务分解，在旁边以<b>步骤框</b>形式输出；轨道遇到异常物品也能自己分析、给出自执行任务拆解。</p>
+
+<p>客户诉求的背景：过去是单一指令传上天、一次任务耗费大量时间精力；现在希望通过卫星算法业务实现智能化，达成多种任务的<b>自感知、自决策、自执行</b>；过去一颗卫星只能干某些任务，将来可通过<b>软件定义</b>灵活变更。</p>
+
+<p><b>流程归并：</b>上述描述可归并为 4 个演示场景（动画分镜）。</p>
+
+<table>
+<colgroup><col width="90"/><col width="300"/><col width="330"/></colgroup>
+<thead><tr><th background-color="light-gray">场景</th><th background-color="light-gray">内容</th><th background-color="light-gray">演示重点</th></tr></thead>
+<tbody>
+<tr><td><b>场景 1</b></td><td>拍摄月亮</td><td>指令 → 姿态指向机动 → 成像 → 回传；展示指向精度与任务分解</td></tr>
+<tr><td><b>场景 2</b></td><td>拍摄美国上空标记物</td><td>轨道预报 + 过境窗口 + 对地成像</td></tr>
+<tr><td><b>场景 3</b></td><td>发现轨道异物并自主躲避</td><td>自感知 → 自决策 → 自执行（技术含量最高）</td></tr>
+<tr><td><b>场景 4</b></td><td>图像数据回传</td><td>星上存储 → 过境建链 → 数传下传</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h2>二、总体结论</h2>
+
+<callout emoji="✅" background-color="light-green" border-color="green">
+<p><b>动画演示：可做。</b>纯网页动画（Canvas / SVG / WebGL / GSAP 均可实现），<b>无技术门槛</b>。真正的难点不在编程，而在"<b>像不像真的</b>"——即动画里的动作序列、时序、数据标注是否符合航天工程常识。本文档的主要内容就是把每一步的<b>真实动作序列</b>写出来，动画照此演出即可具备专业感。</p>
+</callout>
+
+<p><b>真实业务能力分三级：</b>✅ 成熟技术（业界已有大量在轨应用）、⚠️ 需专项开发（路线清晰但需专门研制）、❌ 前沿研究（业界仍在探索）。</p>
+
+<table>
+<colgroup><col width="170"/><col width="70"/><col width="90"/><col width="390"/></colgroup>
+<thead><tr><th background-color="light-gray">场景</th><th background-color="light-gray">动画</th><th background-color="light-gray">真实业务</th><th background-color="light-gray">关键结论</th></tr></thead>
+<tbody>
+<tr><td>1 拍摄月亮</td><td>可做</td><td><span text-color="green">✅ 成熟</span></td><td><b>不需要变轨</b>，靠可见性窗口 + 姿态指向；2° 约束来自<b>相机视场</b>，而非姿控能力</td></tr>
+<tr><td>2 拍摄地面标记物</td><td>可做</td><td><span text-color="green">✅ 成熟</span></td><td>需<b>轨道预报算过境时刻</b>；单星受<b>重访周期</b>限制，不能随时到访</td></tr>
+<tr><td>3 自主躲避异物</td><td>可做</td><td><span text-color="red">❌ 前沿</span></td><td><b>姿态调整改变不了轨道交会几何，避碰本质是变轨机动</b></td></tr>
+<tr><td>4 图像回传</td><td>可做</td><td><span text-color="green">✅ 成熟</span></td><td>受<b>地面站可见窗口</b>限制，<b>不能实时下传</b></td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h2>三、场景 1 · 拍摄月亮</h2>
+
+<h3>3.1 客户描述</h3>
+<p>地面发送指令，卫星"运行到指定位置"，调整相机载荷观测月亮（俯仰角 2° 以内），观测完成后返回月亮图片。</p>
+
+<h3>3.2 可行性</h3>
+<table>
+<thead><tr><th background-color="light-gray">维度</th><th background-color="light-gray">结论</th></tr></thead>
+<tbody>
+<tr><td>动画实现</td><td>✅ 可做，无难点</td></tr>
+<tr><td>真实业务</td><td><span text-color="green">✅ 成熟技术</span>（对月成像 / 月球定标是遥感卫星的常规操作，月球常被用作辐射定标源）</td></tr>
+</tbody>
+</table>
+
+<callout emoji="💡" background-color="light-yellow" border-color="yellow">
+<p><b>技术澄清一：拍摄月亮不需要变轨。</b>月球距地约 38.4 万公里，卫星在 500 km 轨道上无论位于轨道何处，月球都在其视野范围内——<b>唯一需要做的是把星体姿态转过去，让相机对准月球</b>，轨道位置基本不用改。</p>
+<p>真正制约"能不能拍到"的是两件事：<b>① 可见性</b>——地球会遮挡，卫星到地心距离约 6878 km，地球角半径约 67.9°，即月球方向若落入以"天底"为中心 67.9° 的锥内就被挡住，粗略估算约 <b>1/3 的时间月球被地球遮挡</b>，需等可见窗口；<b>② 太阳规避</b>——相机不能对着太阳方向，否则会烧毁探测器，需避开强光角度。</p>
+</callout>
+
+<callout emoji="❗" background-color="light-yellow" border-color="yellow">
+<p><b>技术澄清二：关于 2° 俯仰角。</b>这个约束的合理来源是<b>相机视场（FOV）</b>——指向误差须小于视场半角，否则目标会偏出画面。就姿控能力而言，2° 是<b>相当宽松</b>的要求：星敏感器定姿精度可达<b>角秒级</b>（1 角秒约 0.00028°），现代卫星姿态指向精度通常<b>优于 0.1°</b>。</p>
+<p>换句话说：<b>2° 的难点不在"能不能转这么准"，而在于"相机视场有多窄"</b>。若相机视场窄于 2°，2° 的误差反而会拍空。</p>
+</callout>
+
+<h3>3.3 卫星动作序列</h3>
+<ol>
+<li seq="auto"><b>指令接收与校验</b>：地面站上注任务指令 → 星务计算机校验合法性 → 排入任务队列</li>
+<li seq="auto"><b>状态自感知</b>：读取自身轨道位置与速度 → 读当前姿态（星敏 + 陀螺）→ 读电源状态（确认供电充足）</li>
+<li seq="auto"><b>目标方位解算</b>：查月球星历（简化月球历表即可）→ 算出月球在惯性系的方向 → 转换到星体系 → 得目标姿态</li>
+<li seq="auto"><b>可见性判断</b>：判断月球方向是否被地球遮挡 → 判断与太阳夹角是否安全（规避太阳）→ 不在窗口则等待</li>
+<li seq="auto"><b>姿态机动（Slew）</b>：规划最短角距转动路径 → 飞轮输出力矩 → 星体三轴旋转 → 粗指向到位</li>
+<li seq="auto"><b>精指向与稳定</b>：星敏精定姿 → 姿态闭环微调 → 指向误差收敛（优于 0.1°）→ 姿态稳定</li>
+<li seq="auto"><b>相机开机与成像</b>：相机加电自检 → 自动测光（月球很亮，需短曝光防过曝）→ 按曝光参数成像 → 可多帧连续拍摄</li>
+<li seq="auto"><b>数据存储</b>：图像压缩 → 存入星上固态存储器 → 记录成像时刻、姿态、曝光参数等辅助数据</li>
+<li seq="auto"><b>数据回传</b>：等待地面站可见窗口 → 建链 → 下传图像（详见场景 4）</li>
+</ol>
+
+<h3>3.4 数据采集</h3>
+<table>
+<colgroup><col width="150"/><col width="620"/></colgroup>
+<thead><tr><th background-color="light-gray">类别</th><th background-color="light-gray">具体内容</th></tr></thead>
+<tbody>
+<tr><td><b>星上测量数据</b></td><td>轨道位置速度（GPS / 定轨）、姿态角（星敏 + 陀螺）、角速度、太阳方向（太敏）</td></tr>
+<tr><td><b>载荷图像数据</b></td><td>月球图像（可见光为主）、曝光时间、增益、成像时刻、相机温度</td></tr>
+<tr><td><b>平台状态数据</b></td><td>电源母线电压 / 电流、电池 SOC、各分系统健康状态（温度、电压、模式）</td></tr>
+<tr><td><b>辅助数据</b></td><td>卫星位置、姿态四元数、载荷指向角（供地面做图像几何校正）</td></tr>
+</tbody>
+</table>
+
+<h3>3.5 任务分解（自感知 · 自决策 · 自执行）</h3>
+<table>
+<colgroup><col width="110"/><col width="660"/></colgroup>
+<thead><tr><th background-color="light-gray">环节</th><th background-color="light-gray">具体步骤</th></tr></thead>
+<tbody>
+<tr><td><b>自感知</b></td><td>① 取自身轨道位置与速度　② 读当前姿态与角速度　③ 查月球星历算月球方位　④ 判断可见性（地球遮挡、太阳夹角）</td></tr>
+<tr><td><b>自决策</b></td><td>① 解算目标指向姿态　② 规划最短角距机动路径　③ 估算机动耗时与过曝风险　④ 排定成像时刻与曝光参数　⑤ 确认电源与热控余量</td></tr>
+<tr><td><b>自执行</b></td><td>① 飞轮输出力矩完成姿态机动　② 星敏精定姿、指向误差收敛　③ 相机加电、自动测光　④ 按参数成像（可多帧）　⑤ 压缩并存储图像</td></tr>
+<tr><td><b>数据回传</b></td><td>等待地面站可见窗口 → 建链 → 下传图像与辅助数据 → 地面确认接收</td></tr>
+</tbody>
+</table>
+
+<h3>3.6 步骤框文本（动画可直接使用）</h3>
+<callout emoji="✅" background-color="light-green" border-color="green">
+<p>【指令接收】地面站上注任务：拍摄月球</p>
+<p>【自感知】取轨道位置速度 · 读当前姿态 · 查月球星历算方位 · 判断地球遮挡与太阳夹角</p>
+<p>【自决策】解算目标指向 · 规划最短角距机动路径 · 估算机动耗时与过曝风险 · 排定曝光参数</p>
+<p>【自执行】飞轮力矩机动 → 星敏精定姿（指向误差优于 0.1°）→ 相机测光 → 多帧成像 → 压缩存储</p>
+<p>【数据回传】等待地面站可见窗口 → 下传月球图像与遥测数据</p>
+</callout>
+
+<h3>3.7 未来能否真实落地</h3>
+<table>
+<colgroup><col width="260"/><col width="130"/><col width="390"/></colgroup>
+<thead><tr><th background-color="light-gray">能力项</th><th background-color="light-gray">落地判断</th><th background-color="light-gray">说明</th></tr></thead>
+<tbody>
+<tr><td>姿态机动指向月球</td><td><span text-color="green">✅ 成熟</span></td><td>三轴姿控 + 飞轮，标准技术</td></tr>
+<tr><td>月球星历解算</td><td><span text-color="green">✅ 成熟</span></td><td>星上跑简化历表即可，算力需求极低</td></tr>
+<tr><td>可见性 / 太阳规避判断</td><td><span text-color="green">✅ 成熟</span></td><td>几何计算，常规功能</td></tr>
+<tr><td>自动测光防过曝</td><td><span text-color="green">✅ 成熟</span></td><td>对月成像的必要功能，有成熟方案</td></tr>
+<tr><td>星上存储与下传</td><td><span text-color="green">✅ 成熟</span></td><td>固态存储 + 测控数传</td></tr>
+<tr><td>多谱段同时观测（红外 / 可见光 / 紫外 / 光谱）</td><td><span text-color="yellow">⚠️ 需专项开发</span></td><td><b>需多台探测器或分光系统</b>，不是一台相机能同时覆盖；需按任务选配</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h2>四、场景 2 · 拍摄美国上空标记物</h2>
+
+<h3>4.1 客户描述</h3>
+<p>地面发送指令，去美国上空拍摄标记物；卫星"自主决策飞行，调整姿态"；到达上空后调整姿态拍摄。</p>
+
+<h3>4.2 可行性</h3>
+<table>
+<thead><tr><th background-color="light-gray">维度</th><th background-color="light-gray">结论</th></tr></thead>
+<tbody>
+<tr><td>动画实现</td><td>✅ 可做</td></tr>
+<tr><td>真实业务</td><td><span text-color="green">✅ 成熟技术</span>（遥感卫星成像任务规划是标准业务，全球主要遥感卫星都具备）</td></tr>
+</tbody>
+</table>
+
+<callout emoji="💡" background-color="light-yellow" border-color="yellow">
+<p><b>关键约束：单星不能"随时到访"。</b>低轨（500 km）卫星对同一地面点的<b>重访周期</b>通常为<b>数小时到数天</b>，取决于轨道倾角、回归特性与侧摆能力。所谓"去美国上空"，工程上是：① 用<b>轨道预报</b>算出卫星何时经过目标附近；② <b>等待</b>到过境时刻；③ 在过境前后<b>调整姿态（含侧摆）</b>对准目标成像。</p>
+<p><b>关于侧摆（Roll）：</b>卫星可通过横滚侧摆观测星下点两侧的目标，扩大可观测范围，但代价是<b>斜距增大、分辨率下降</b>。</p>
+</callout>
+
+<h3>4.3 卫星动作序列</h3>
+<ol>
+<li seq="auto"><b>指令接收与解析</b>：接收地面任务（目标经纬度、拍摄要求）→ 校验 → 入任务队列</li>
+<li seq="auto"><b>目标可见性预报</b>：用轨道预报模型外推未来轨道 → 计算目标何时进入可观测范围 → 确定过境时刻</li>
+<li seq="auto"><b>任务规划</b>：结合多目标优先级、电源余量、存储余量、数传窗口 → 排出成像计划</li>
+<li seq="auto"><b>等待与姿态预置</b>：到达过境前若干分钟 → 姿态预转向目标方向（预置可减小机动量）</li>
+<li seq="auto"><b>对地指向</b>：按过境几何解算指向姿态（星下点或侧摆）→ 姿态机动 → 精指向稳定</li>
+<li seq="auto"><b>成像</b>：相机按计划成像 → 按条带推扫或定点凝视 → 多帧 / 多光谱采集</li>
+<li seq="auto"><b>存储与下传</b>：图像压缩存储 → 等地面站窗口下传（详见场景 4）</li>
+</ol>
+
+<h3>4.4 数据采集</h3>
+<table>
+<colgroup><col width="150"/><col width="620"/></colgroup>
+<thead><tr><th background-color="light-gray">类别</th><th background-color="light-gray">具体内容</th></tr></thead>
+<tbody>
+<tr><td><b>轨道与时间</b></td><td>星上时间、轨道位置速度、星下点经纬度、过境时刻预报</td></tr>
+<tr><td><b>姿态数据</b></td><td>姿态四元数 / 欧拉角、角速度、指向角（含侧摆角）</td></tr>
+<tr><td><b>图像数据</b></td><td>目标区域图像（可见光 / 多光谱）、成像时刻、曝光参数、条带编号</td></tr>
+<tr><td><b>质量辅助数据</b></td><td>相机温度、平台稳定度（姿态角速度）、太阳高度角</td></tr>
+</tbody>
+</table>
+
+<h3>4.5 任务分解（自感知 · 自决策 · 自执行）</h3>
+<table>
+<colgroup><col width="110"/><col width="660"/></colgroup>
+<thead><tr><th background-color="light-gray">环节</th><th background-color="light-gray">具体步骤</th></tr></thead>
+<tbody>
+<tr><td><b>自感知</b></td><td>① 取轨道位置速度　② 读当前姿态　③ 读目标点经纬度（来自指令）　④ 读电源、存储余量</td></tr>
+<tr><td><b>自决策</b></td><td>① 轨道预报算过境时刻　② 计算可观测窗口与侧摆角　③ 多任务优先级排序　④ 排定成像时序与曝光参数　⑤ 关联最近地面站窗口</td></tr>
+<tr><td><b>自执行</b></td><td>① 姿态预置 → 对地指向机动　② 精指向稳定　③ 按计划成像（推扫 / 凝视）　④ 压缩存储并打标签</td></tr>
+<tr><td><b>数据回传</b></td><td>等待地面站窗口 → 按优先级下传</td></tr>
+</tbody>
+</table>
+
+<h3>4.6 步骤框文本（动画可直接使用）</h3>
+<callout emoji="✅" background-color="light-green" border-color="green">
+<p>【指令接收】地面站上注任务：拍摄美国上空标记物（含目标经纬度）</p>
+<p>【自感知】取轨道位置速度 · 读当前姿态 · 解析目标点坐标 · 读电源与存储余量</p>
+<p>【自决策】轨道预报算过境时刻 · 计算可观测窗口与侧摆角 · 多任务优先级排序 · 排定成像时序</p>
+<p>【自执行】姿态预置 → 对地指向机动 → 精指向稳定 → 按条带成像 → 压缩存储并打标签</p>
+<p>【数据回传】关联最近地面站窗口 → 按优先级下传图像</p>
+</callout>
+
+<h3>4.7 未来能否真实落地</h3>
+<table>
+<colgroup><col width="260"/><col width="130"/><col width="390"/></colgroup>
+<thead><tr><th background-color="light-gray">能力项</th><th background-color="light-gray">落地判断</th><th background-color="light-gray">说明</th></tr></thead>
+<tbody>
+<tr><td>星上轨道预报</td><td><span text-color="green">✅ 成熟</span></td><td>常用简化模型，算力需求低</td></tr>
+<tr><td>过境时刻计算</td><td><span text-color="green">✅ 成熟</span></td><td>常规功能</td></tr>
+<tr><td>三轴对地指向 + 侧摆</td><td><span text-color="green">✅ 成熟</span></td><td>成熟姿控功能</td></tr>
+<tr><td>多目标任务规划</td><td><span text-color="green">✅ 成熟</span></td><td>地面规划成熟；<b>星上自主规划</b>属 ⚠️ 需专项开发</td></tr>
+<tr><td>推扫 / 凝视成像</td><td><span text-color="green">✅ 成熟</span></td><td>标准成像模式</td></tr>
+<tr><td><b>"随时随地到访"</b></td><td><span text-color="red">❌ 不可实现</span></td><td>受物理规律限制，单星重访周期无法消除（需星座组网改善）</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h2>五、场景 3 · 发现轨道异物并自主躲避</h2>
+
+<h3>5.1 客户描述</h3>
+<p>发现轨道上有异物，自主决策，调整姿态等躲避异物。</p>
+
+<h3>5.2 可行性</h3>
+<table>
+<thead><tr><th background-color="light-gray">维度</th><th background-color="light-gray">结论</th></tr></thead>
+<tbody>
+<tr><td>动画实现</td><td>✅ 可做（视觉演出效果很好，是全片亮点）</td></tr>
+<tr><td>真实业务</td><td><span text-color="red">❌ 前沿研究级</span>——星上全自主避碰尚无成熟工程方案</td></tr>
+</tbody>
+</table>
+
+<callout emoji="⚠️" background-color="light-red" border-color="red">
+<p><b>必须指出的一处物理问题：调整姿态不能实现避碰。</b>碰撞是<b>两个轨道是否交会</b>的问题，而姿态改变的是星体朝向、<b>不改变轨道（质心运动）</b>。姿态调整只能通过改变迎风截面积、长期微弱影响大气阻力，<b>对短期碰撞规避没有实际作用</b>。</p>
+<p>因此动画中可以演出"星体转动"的视觉效果，但<b>文字框应表述为"规避机动（变轨）"</b>，以保持专业性。</p>
+</callout>
+
+<p><b>真实避碰的技术链：</b></p>
+<ol>
+<li seq="auto">空间目标探测编目（地面雷达 / 光学望远镜，或星载探测）</li>
+<li seq="auto">轨道预报与交会计算（外推双方轨道，算出最近接近时刻 TCA 与最小距离）</li>
+<li seq="auto">碰撞风险评估（计算碰撞概率 Pc）</li>
+<li seq="auto">决策（Pc 超阈值 → 决定是否规避）</li>
+<li seq="auto">规避机动 CAM（施加速度增量 Δv 变轨，通常在 TCA 前数小时至数天执行）</li>
+<li seq="auto">效果验证（重新预报，确认风险解除）</li>
+</ol>
+
+<callout emoji="❗" background-color="light-yellow" border-color="yellow">
+<p><b>星上自主的现状：</b>星载空间目标探测 + 星上定轨 + 自主预警决策，是当前航天领域的<b>前沿方向</b>。业界部分星座（如星链）已具备较高的自主避碰能力，但<b>仍主要依赖地面编目数据上行</b>，星上完全自主闭环尚未普及。</p>
+</callout>
+
+<h3>5.3 卫星动作序列</h3>
+<ol>
+<li seq="auto"><b>异物感知</b>：对天观测载荷探测到不明目标（光学 / 雷达）→ 提取方位与运动信息 → 触发告警</li>
+<li seq="auto"><b>交会评估</b>：结合自身轨道外推双方轨迹 → 计算最近接近时刻与最小距离 → 评估碰撞概率</li>
+<li seq="auto"><b>自主决策</b>：判断碰撞概率是否超阈值 → 决定规避时机与方式 → 计算所需速度增量 Δv</li>
+<li seq="auto"><b>规避执行</b>：<b>姿态调整</b>——将推力轴指向所需方向（这一"调整姿态"是为变轨做准备）；<b>变轨机动</b>——发动机 / 电推力器点火，施加 Δv → 轨道抬升 / 降低 / 偏转</li>
+<li seq="auto"><b>风险确认</b>：重新外推轨道 → 确认最小距离已大于安全门限 → 解除告警 → 记录事件</li>
+</ol>
+
+<h3>5.4 数据采集</h3>
+<table>
+<colgroup><col width="150"/><col width="620"/></colgroup>
+<thead><tr><th background-color="light-gray">类别</th><th background-color="light-gray">具体内容</th></tr></thead>
+<tbody>
+<tr><td><b>目标探测数据</b></td><td>异物方位角、俯仰角、亮度、运动角速度、时序测量（用于定轨）</td></tr>
+<tr><td><b>自身轨道数据</b></td><td>位置、速度矢量（定轨精度直接决定交会计算准确度）</td></tr>
+<tr><td><b>交会计算结果</b></td><td>最近接近时刻 TCA、最小距离、碰撞概率 Pc、相对速度</td></tr>
+<tr><td><b>机动参数</b></td><td>所需 Δv 大小与方向、点火时刻、预计推进剂消耗、机动后轨道根数</td></tr>
+<tr><td><b>状态监控</b></td><td>推力器状态、推进剂余量、电源功率、姿态稳定度</td></tr>
+</tbody>
+</table>
+
+<h3>5.5 任务分解（自感知 · 自决策 · 自执行）</h3>
+<table>
+<colgroup><col width="110"/><col width="660"/></colgroup>
+<thead><tr><th background-color="light-gray">环节</th><th background-color="light-gray">具体步骤</th></tr></thead>
+<tbody>
+<tr><td><b>自感知</b></td><td>① 对天探测器发现目标　② 连续多帧跟踪测量，提取方位与运动　③ 结合自身轨道外推目标轨迹　④ 计算交会几何与碰撞概率</td></tr>
+<tr><td><b>自决策</b></td><td>① 判断 Pc 是否超安全阈值　② 评估规避必要性　③ 选择机动策略（提前 / 延后 / 抬升 / 降低）　④ 计算最小 Δv 方案（省燃料）　⑤ 确定点火时刻与推力方向　⑥ 校验推进剂与电源余量</td></tr>
+<tr><td><b>自执行</b></td><td>① 姿态机动：把推力轴对准所需方向　② 推力器点火，施加 Δv　③ 机动结束姿态恢复　④ 重新定轨确认效果　⑤ 更新轨道参数并上报</td></tr>
+<tr><td><b>数据与告警</b></td><td>记录事件全过程 → 生成规避报告 → 下传地面（地面站独立复核）</td></tr>
+</tbody>
+</table>
+
+<h3>5.6 步骤框文本（动画可直接使用）</h3>
+<callout emoji="✅" background-color="light-green" border-color="green">
+<p>【异常感知】对天载荷探测到轨道异物 → 多帧跟踪测量 → 提取目标方位与运动信息</p>
+<p>【自感知】结合自身轨道外推双方轨迹 → 计算最近接近时刻与最小距离 → 评估碰撞概率</p>
+<p>【自决策】碰撞概率超阈值 → 判断需规避 → 选择机动策略 → 计算最小 Δv 与点火时刻</p>
+<p>【自执行】姿态机动使推力轴对准方向 → 推力器点火施加 Δv → 轨道抬升 / 降低 → 风险解除</p>
+<p>【效果确认】重新外推轨道 → 最小距离大于安全门限 → 解除告警 → 生成规避报告下传地面</p>
+</callout>
+
+<h3>5.7 未来能否真实落地</h3>
+<table>
+<colgroup><col width="260"/><col width="140"/><col width="380"/></colgroup>
+<thead><tr><th background-color="light-gray">能力项</th><th background-color="light-gray">落地判断</th><th background-color="light-gray">说明</th></tr></thead>
+<tbody>
+<tr><td>地面编目 + 交会预警</td><td><span text-color="green">✅ 成熟</span></td><td>现有航天测控体系的标准业务</td></tr>
+<tr><td>规避机动（变轨）</td><td><span text-color="green">✅ 成熟</span></td><td>需卫星具备推进能力与足够推进剂</td></tr>
+<tr><td>星载空间目标探测</td><td><span text-color="yellow">⚠️ 需专项开发</span></td><td>需雷达或光学探测载荷，受体积、功耗、算力限制</td></tr>
+<tr><td>星上自主定轨与交会计算</td><td><span text-color="yellow">⚠️ 需专项开发</span></td><td>需星上高精度轨道外推能力</td></tr>
+<tr><td>星上全自主避碰闭环</td><td><span text-color="red">❌ 前沿研究</span></td><td>无需地面干预的完整闭环，业界仍在探索</td></tr>
+<tr><td>仅靠姿态调整避碰</td><td><span text-color="red">❌ 物理不成立</span></td><td>姿态不改变质心轨道，无法规避碰撞</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h2>六、场景 4 · 图像数据回传</h2>
+
+<h3>6.1 客户描述</h3>
+<p>到达美国上空，调整姿态拍摄，并传回图片数据。</p>
+
+<h3>6.2 可行性</h3>
+<table>
+<thead><tr><th background-color="light-gray">维度</th><th background-color="light-gray">结论</th></tr></thead>
+<tbody>
+<tr><td>动画实现</td><td>✅ 可做</td></tr>
+<tr><td>真实业务</td><td><span text-color="green">✅ 成熟技术</span>（测控与数传是卫星标配）</td></tr>
+</tbody>
+</table>
+
+<callout emoji="💡" background-color="light-yellow" border-color="yellow">
+<p><b>关键约束：数传不能实时进行。</b>卫星必须<b>飞到地面站上空</b>（进入地面站可见范围）才能建立下行链路。低轨卫星单次过境某地面站的可见时间通常仅 <b>5~10 分钟</b>，而一次成像的数据量可能很大。</p>
+<p>因此：图像先<b>存在星上固态存储器</b>里；等到<b>地面站窗口</b>再下传；需在<b>数据量、下行速率、窗口时长</b>之间平衡，必要时做星上压缩、分优先级下传（重要图像先传）。</p>
+</callout>
+
+<h3>6.3 卫星动作序列</h3>
+<ol>
+<li seq="auto"><b>数据就绪</b>：图像压缩打包 → 附加辅助数据（时刻 / 姿态 / 参数）→ 存入星上存储器</li>
+<li seq="auto"><b>窗口预报</b>：计算下一可见地面站与过境时刻 → 准备建链</li>
+<li seq="auto"><b>建链</b>：卫星进入地面站可见范围 → 测控链路建立 → 数传链路建立</li>
+<li seq="auto"><b>数据下传</b>：按优先级下传图像与遥测 → 地面站接收 → 校验完整性 → 未收全则重传</li>
+<li seq="auto"><b>收尾</b>：下传完成确认 → 释放存储空间 → 记录数传日志</li>
+</ol>
+
+<h3>6.4 数据采集</h3>
+<table>
+<colgroup><col width="150"/><col width="620"/></colgroup>
+<thead><tr><th background-color="light-gray">类别</th><th background-color="light-gray">具体内容</th></tr></thead>
+<tbody>
+<tr><td><b>下行数据</b></td><td>图像文件、辅助数据（姿态 / 时刻 / 参数）、平台遥测（电压 / 温度 / 模式 / 健康状态）</td></tr>
+<tr><td><b>链路参数</b></td><td>下行速率、误码率、链路余量、接收信号强度</td></tr>
+<tr><td><b>状态数据</b></td><td>存储器余量、下传进度、未传数据队列</td></tr>
+</tbody>
+</table>
+
+<h3>6.5 任务分解（自感知 · 自决策 · 自执行）</h3>
+<table>
+<colgroup><col width="110"/><col width="660"/></colgroup>
+<thead><tr><th background-color="light-gray">环节</th><th background-color="light-gray">具体步骤</th></tr></thead>
+<tbody>
+<tr><td><b>自感知</b></td><td>① 监测存储器余量与数据队列　② 计算下一地面站可见窗口　③ 监测链路状态与天线指向</td></tr>
+<tr><td><b>自决策</b></td><td>① 制定下传计划（优先级排序）　② 选择下行速率与调制方式　③ 决定是否需要星上压缩或降分辨率　④ 冲突时取舍（成像 vs 下传）</td></tr>
+<tr><td><b>自执行</b></td><td>① 姿态调整使数传天线对准地面站　② 建立测控 / 数传链路　③ 分优先级下传　④ 校验完整性并重传　⑤ 释放存储空间</td></tr>
+<tr><td><b>地面协同</b></td><td>地面站接收 → 解调译码 → 数据校核 → 分发给用户</td></tr>
+</tbody>
+</table>
+
+<h3>6.6 步骤框文本（动画可直接使用）</h3>
+<callout emoji="✅" background-color="light-green" border-color="green">
+<p>【数据就绪】图像压缩打包 · 附加辅助数据（成像时刻 / 姿态 / 曝光参数）· 存入星上存储器</p>
+<p>【自感知】监测存储余量与待传队列 · 预报下一地面站可见窗口 · 监测链路状态</p>
+<p>【自决策】制定下传计划（按优先级排序）· 选择下行速率 · 必要时星上压缩或降分辨率</p>
+<p>【自执行】姿态调整使数传天线对准地面站 → 建立数传链路 → 按序下传 → 校验重传 → 释放存储</p>
+<p>【地面接收】地面站接收解调 · 数据校核 · 分发给用户</p>
+</callout>
+
+<h3>6.7 未来能否真实落地</h3>
+<table>
+<colgroup><col width="260"/><col width="140"/><col width="380"/></colgroup>
+<thead><tr><th background-color="light-gray">能力项</th><th background-color="light-gray">落地判断</th><th background-color="light-gray">说明</th></tr></thead>
+<tbody>
+<tr><td>星上存储</td><td><span text-color="green">✅ 成熟</span></td><td>固态存储器，标准配置</td></tr>
+<tr><td>图像压缩</td><td><span text-color="green">✅ 成熟</span></td><td>常规功能</td></tr>
+<tr><td>测控 / 数传链路</td><td><span text-color="green">✅ 成熟</span></td><td>标准分系统</td></tr>
+<tr><td>地面站窗口调度</td><td><span text-color="green">✅ 成熟</span></td><td>测控网常规业务</td></tr>
+<tr><td><b>实时回传</b></td><td><span text-color="red">❌ 不可实现</span></td><td>受物理可见性限制；需中继卫星或地面站组网才能显著改善时效</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h2>七、任务分解机制设计（客户核心诉求）</h2>
+
+<p>客户要求的核心是"卫星接收指令后，按<b>自感知、自决策、自执行</b>的内核完成任务分解"。这是一套<b>自主任务管理架构</b>，建议按下表设计（三级能力递进）：</p>
+
+<table>
+<colgroup><col width="70"/><col width="110"/><col width="250"/><col width="250"/><col width="130"/></colgroup>
+<thead><tr><th background-color="light-gray">级别</th><th background-color="light-gray">名称</th><th background-color="light-gray">特征</th><th background-color="light-gray">典型功能</th><th background-color="light-gray">真实实现难度</th></tr></thead>
+<tbody>
+<tr><td><b>L1</b></td><td>地面主导</td><td>地面规划好指令序列，星上按时执行</td><td>定时成像、姿态机动、数据下传</td><td><span text-color="green">✅ 当前业界主流</span></td></tr>
+<tr><td><b>L2</b></td><td>星上辅助</td><td>星上具备局部自主能力</td><td>自主定姿、自主健康管理、异常自主安全模式、自主测光</td><td><span text-color="green">✅ 已广泛实现</span></td></tr>
+<tr><td><b>L3</b></td><td>星上自主</td><td>星上完成感知-决策-执行闭环</td><td>自主任务规划、自主目标识别、自主避碰</td><td><span text-color="red">⚠️~❌ 部分前沿</span></td></tr>
+</tbody>
+</table>
+
+<callout emoji="📌" background-color="light-blue" border-color="blue">
+<p><b>动画中的呈现建议：</b>将每个场景的步骤框按 <b>【自感知】→【自决策】→【自执行】→【数据回传】</b> 四段展示，并加一个"能力标注"角标：</p>
+<p>· 场景 1、2、4 标注 <b>L2 星上辅助</b></p>
+<p>· 场景 3 标注 <b>L3 星上自主（前沿方向）</b></p>
+<p>这样既能满足客户"看到任务分解"的要求，又能<b>如实反映技术成熟度</b>，避免给客户造成"这些都已经能做了"的误解。</p>
+</callout>
+
+<p><b>任务分解的通用内核（动画文字框可复用）：</b></p>
+<callout emoji="🔧" background-color="light-gray">
+<p>【指令接收】地面站上注任务 → 星务校验 → 入任务队列</p>
+<p>【自感知】读自身状态（轨道 / 姿态 / 电源 / 存储）→ 感知外部环境（目标方位 / 可见性 / 威胁）</p>
+<p>【自决策】解算目标 → 规划动作序列 → 评估约束（电源 / 热控 / 时间 / 燃料）→ 排定时序</p>
+<p>【自执行】按序列驱动分系统（姿控 / 载荷 / 推进 / 数传）→ 执行并监控</p>
+<p>【数据回传】记录数据 → 等地面站窗口 → 下传 → 地面复核</p>
+</callout>
+
+<hr/>
+
+<h2>八、星载算力与端侧推理需求</h2>
+
+<p>客户明确提出："<b>星载计算机肯定要带算力的，才能具备端侧推理</b>"。这个判断<b>方向上正确</b>，但需要按环节区分——并非所有功能都需要高算力。</p>
+
+<table>
+<colgroup><col width="300"/><col width="150"/><col width="320"/></colgroup>
+<thead><tr><th background-color="light-gray">功能环节</th><th background-color="light-gray">算力需求</th><th background-color="light-gray">硬件选型方向</th></tr></thead>
+<tbody>
+<tr><td>时统、遥测采集、指令分发</td><td>极低</td><td>普通 MCU</td></tr>
+<tr><td>轨道预报、姿态解算、控制律</td><td>低</td><td>抗辐照 MCU / 低端 ARM</td></tr>
+<tr><td>姿态确定（星敏星图匹配）</td><td>低</td><td>传统算法即可在抗辐照处理器上运行（<b>真实星敏正是这么做的，不需要 AI</b>）</td></tr>
+<tr><td>激光 / 光学目标检测（点目标提取）</td><td>中</td><td>中端 ARM / DSP（经典图像处理算法）</td></tr>
+<tr><td><b>图像目标识别（AI 端侧推理）</b></td><td><b><span text-color="red">高</span></b></td><td><b>NPU / GPU / FPGA 加速的载荷处理机</b>——这才是"端侧推理"的真正需求场景</td></tr>
+<tr><td><b>星载空间目标探测 + 自主定轨</b></td><td><b><span text-color="red">最高</span></b></td><td>高性能载荷处理机 + 专用加速</td></tr>
+</tbody>
+</table>
+
+<callout emoji="⚠️" background-color="light-red" border-color="red">
+<p><b>关键区分（务必对客户讲清）：</b></p>
+<p><b>任务规划、姿态解算、星图匹配</b>这类算法是<b>传统数学 / 信号处理算法</b>，算力需求低，普通星载计算机即可胜任，<b>不需要端侧推理</b>。</p>
+<p>只有<b>图像内容识别</b>（如识别地面目标类型、识别空间目标）才需要<b>深度学习推理</b>，需要带 NPU / GPU / FPGA 的高性能载荷处理机。星载 AI 还需配套<b>模型量化与剪枝</b>（压缩到星载算力可承载）、<b>抗辐照加固</b>、<b>功耗与散热设计</b>。</p>
+<p><b>建议表述：</b>本演示中，<b>基础任务规划与姿态控制</b>用普通星载计算机即可实现；若要在星上做<b>图像内容识别与自主决策</b>，则需配置<b>带 AI 加速的载荷处理机</b>，这是需要专项研制的部分。</p>
+</callout>
+
+<hr/>
+
+<h2>九、与客户描述的差异及建议（技术备注）</h2>
+
+<p>以下 7 处建议在动画脚本或技术交流中做适当处理，以体现专业性（<b>不影响动画演出效果</b>）：</p>
+
+<table>
+<colgroup><col width="40"/><col width="230"/><col width="290"/><col width="230"/></colgroup>
+<thead><tr><th background-color="light-gray">#</th><th background-color="light-gray">客户描述</th><th background-color="light-gray">技术说明</th><th background-color="light-gray">建议</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>拍月亮需"运行到指定位置"</td><td>月球 38.4 万 km 外，<b>不需要变轨</b>，只需姿态指向 + 等可见窗口</td><td>动画可保留"调整姿态"演出，文字框写"姿态指向"，避免"变轨"</td></tr>
+<tr><td>2</td><td>"2° 以内的俯仰角"</td><td>2° 是<b>很宽松</b>的要求（姿控可达 0.1° 级）；真正约束来自<b>相机视场</b></td><td>可表述为"指向精度满足相机视场要求"</td></tr>
+<tr><td>3</td><td>红外 / 可见光 / 紫外 / 光谱同时获取</td><td>需<b>多台探测器或分光系统</b>，非单相机可覆盖</td><td>表述为"多谱段载荷"而非"一台相机"</td></tr>
+<tr><td>4</td><td>"自主决策飞行"</td><td>轨道基本既定，工程上是"<b>等窗口 + 调姿态</b>"</td><td>可表述为"自主规划与姿态自主调整"</td></tr>
+<tr><td>5</td><td>"去美国上空"（随时可去）</td><td>受<b>重访周期</b>限制，单星数小时~数天才能重访</td><td>动画可省略等待过程，文字可提"按过境窗口执行"</td></tr>
+<tr><td>6</td><td>调整姿态躲避异物</td><td><b>姿态改变不了轨道</b>，避碰本质是<b>变轨机动</b></td><td>动画保留姿态演出，文字框写"规避机动（变轨）"</td></tr>
+<tr><td>7</td><td>图像"传回"（似实时）</td><td>受<b>地面站可见窗口</b>限制，需等过境</td><td>文字框写"等待地面站窗口下传"</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h2>十、落地路径建议</h2>
+
+<p>若客户后续希望从"动画演示"走向"真实业务能力"，建议分三步：</p>
+
+<table>
+<colgroup><col width="120"/><col width="160"/><col width="380"/><col width="130"/></colgroup>
+<thead><tr><th background-color="light-gray">阶段</th><th background-color="light-gray">目标</th><th background-color="light-gray">关键内容</th><th background-color="light-gray">对应本演示</th></tr></thead>
+<tbody>
+<tr><td><b>第一步</b></td><td>能力可视化</td><td>以网页动画呈现完整的任务分解与执行流程（即本次演示）</td><td>全部场景</td></tr>
+<tr><td><b>第二步</b></td><td>半实物仿真验证</td><td>搭建仿真环境，验证任务规划、姿态控制、载荷调度、数传调度的闭环</td><td>场景 1、2、4</td></tr>
+<tr><td><b>第三步</b></td><td>星上部署</td><td>按能力分级逐步上星：先 L2（星上辅助），再选场景试点 L3（星上自主）</td><td>场景 3 优先做地面闭环</td></tr>
+</tbody>
+</table>
+
+<p><b>建议优先落地顺序（按技术成熟度）：</b></p>
+<ol>
+<li seq="auto"><b>对地成像任务规划 + 自主姿态指向</b>（成熟，价值高）</li>
+<li seq="auto"><b>对月 / 对星定标</b>（成熟，可作技术验证）</li>
+<li seq="auto"><b>星上自主任务管理（L2）</b>（需专项开发）</li>
+<li seq="auto"><b>星载目标识别与自主避碰（L3）</b>（前沿，建议先做地面算法验证）</li>
+</ol>
+
+<hr/>

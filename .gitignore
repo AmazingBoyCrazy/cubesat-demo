@@ -1,0 +1,9 @@
+# 临时/分析产物（不入库）
+*.tmp
+/tmp/
+feishu_check.json
+chapter_ids.json
+delete_ids.json
+delete_chunks.json
+fix1.xml
+fix2.xml

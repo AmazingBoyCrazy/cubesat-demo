@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>软件定义卫星 · 演示预览</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#05080f; --panel:#0b1220; --line:#1b2740; --line2:#243352;
+    --txt:#d8e2f0; --dim:#7a8aa5; --dim2:#55647f;
+    --blue:#4a90ff; --cyan:#57d6ff; --green:#6fe3a1; --amber:#ffc66e; --red:#ff6b6b;
+  }
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--txt); overflow:hidden;
+    font-family:"Microsoft YaHei","PingFang SC","Noto Sans SC",system-ui,sans-serif;
+    display:flex; flex-direction:column;
+  }
+
+  /* ============ 顶栏 ============ */
+  header{
+    flex:0 0 auto; display:flex; align-items:center; gap:14px;
+    padding:9px 16px; background:linear-gradient(180deg,#0d1729,#0a1220);
+    border-bottom:1px solid var(--line); z-index:20;
+  }
+  .brand{font-size:14px;font-weight:700;color:#bfe0ff;letter-spacing:.6px;white-space:nowrap}
+  .brand small{display:block;font-size:10px;font-weight:400;color:var(--dim2);letter-spacing:0}
+  .tabs{display:flex;gap:7px;margin-left:8px;flex-wrap:wrap}
+  .tab{
+    background:#132039; color:#9db3d4; border:1px solid var(--line2);
+    border-radius:6px; padding:6px 12px; font-size:12.5px; cursor:pointer;
+    transition:all .18s; white-space:nowrap; font-family:inherit;
+  }
+  .tab:hover{background:#1a2c4d;color:#cfe3ff}
+  .tab.active{
+    background:linear-gradient(180deg,#2f7bff,#1e5fd4); border-color:#5a9bff;
+    color:#fff; box-shadow:0 0 12px rgba(74,144,255,.45);
+  }
+  .tab .n{opacity:.65;margin-right:5px;font-family:Consolas,monospace}
+  .spacer{flex:1}
+  .ctrl{display:flex;align-items:center;gap:7px}
+  .cbtn{
+    background:#132039;color:#8fa3c2;border:1px solid var(--line2);border-radius:6px;
+    padding:5px 10px;font-size:11.5px;cursor:pointer;font-family:inherit;transition:.18s;
+  }
+  .cbtn:hover{background:#1a2c4d;color:#cfe3ff}
+  .cbtn.on{background:#1d3a66;color:#9ecbff;border-color:#2f5188}
+  .urlinfo{
+    font-family:Consolas,monospace;font-size:11px;color:var(--dim2);
+    background:#0a1120;border:1px solid var(--line);border-radius:6px;padding:4px 9px;
+    max-width:330px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .urlinfo b{color:var(--cyan);font-weight:600}
+
+  /* 进度条 */
+  .progline{flex:0 0 auto;height:2px;background:#111c30;position:relative;z-index:20}
+  .progline i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#2f7bff,#57d6ff);width:0%}
+
+  /* ============ 主体 ============ */
+  main{flex:1;display:flex;min-height:0}
+
+  /* --- 左侧演示区 2/3 --- */
+  #stage{flex:2;position:relative;min-width:0;background:#02040a;overflow:hidden}
+  #gl{display:block;width:100%;height:100%}
+
+  /* HUD */
+  .hud{position:absolute;inset:0;pointer-events:none}
+  .scenebadge{
+    position:absolute;left:16px;top:14px;
+    background:rgba(8,14,26,.72);border:1px solid var(--line2);border-left:3px solid var(--blue);
+    border-radius:6px;padding:7px 12px;backdrop-filter:blur(6px);
+  }
+  .scenebadge .k{font-size:11px;color:var(--dim2);letter-spacing:1px}
+  .scenebadge .v{font-size:15px;color:#cfe3ff;font-weight:700;margin-top:2px}
+  .scenebadge .s{font-size:11px;color:var(--dim);margin-top:2px}
+
+  .subtitle{
+    position:absolute;left:50%;bottom:22px;transform:translateX(-50%);
+    max-width:min(760px,88%);text-align:center;
+    background:rgba(8,14,26,.8);border:1px solid var(--line2);border-radius:8px;
+    padding:9px 18px;backdrop-filter:blur(6px);
+  }
+  .subtitle .ph{font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:3px}
+  .subtitle .tx{font-size:14px;color:#e8f0fb;line-height:1.55}
+
+  /* 场景专用 HUD */
+  .hudbox{
+    position:absolute;background:rgba(8,14,26,.78);border:1px solid var(--line2);
+    border-radius:7px;padding:8px 12px;backdrop-filter:blur(6px);font-family:Consolas,monospace;
+  }
+  .hudbox .lbl{font-size:10.5px;color:var(--dim2);letter-spacing:.5px}
+  .hudbox .num{font-size:17px;font-weight:700;color:#e8f0fb;letter-spacing:.5px}
+  .hudbox .num.red{color:var(--red)}
+  .hudbox .num.green{color:var(--green)}
+  .hudbox .num.amber{color:var(--amber)}
+  .hudbox .row2{font-size:11px;color:var(--dim);margin-top:3px}
+
+  #hudReticle{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:190px;height:190px;opacity:0;transition:opacity .35s;
+  }
+  #hudReticle.on{opacity:1}
+  #hudReticle div{position:absolute;width:26px;height:26px;border:2.5px solid var(--green)}
+  #hudReticle .tl{left:0;top:0;border-right:0;border-bottom:0}
+  #hudReticle .tr{right:0;top:0;border-left:0;border-bottom:0}
+  #hudReticle .bl{left:0;bottom:0;border-right:0;border-top:0}
+  #hudReticle .br{right:0;bottom:0;border-left:0;border-top:0}
+  #hudReticle .lab{
+    position:absolute;left:0;top:-24px;border:0;width:auto;height:auto;
+    background:rgba(8,14,26,.85);color:var(--green);font-size:12px;
+    font-family:Consolas,monospace;padding:2px 8px;border-radius:4px;
+    white-space:nowrap;display:inline-block;min-width:max-content;
+  }
+
+  .warn{
+    position:absolute;left:50%;top:58px;transform:translateX(-50%);
+    background:rgba(60,8,8,.82);border:1px solid #ff6b6b;color:#ffb3b3;
+    border-radius:6px;padding:6px 16px;font-size:13px;font-weight:700;
+    letter-spacing:1.5px;opacity:0;transition:opacity .2s;font-family:Consolas,monospace;
+  }
+  .warn.on{opacity:1;animation:blink .7s steps(2,end) infinite}
+  @keyframes blink{0%{opacity:1}50%{opacity:.28}100%{opacity:1}}
+
+  /* --- 右侧任务栏 1/3 --- */
+  #panel{
+    flex:1;min-width:330px;max-width:430px;background:var(--panel);
+    border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;
+  }
+  .phead{flex:0 0 auto;padding:12px 15px;border-bottom:1px solid var(--line);background:#0d1729}
+  .phead .t{font-size:14px;color:#bfe0ff;font-weight:700}
+  .phead .st{font-size:11.5px;color:var(--dim);margin-top:3px}
+  .phead .cap{
+    display:inline-block;margin-top:7px;font-size:10.5px;padding:2px 8px;border-radius:10px;
+    background:#16233c;border:1px solid var(--line2);color:#8fa3c2;font-family:Consolas,monospace;
+  }
+  .pbody{flex:1;overflow-y:auto;padding:12px 15px 22px}
+  .pbody::-webkit-scrollbar{width:7px}
+  .pbody::-webkit-scrollbar-thumb{background:#22314f;border-radius:4px}
+
+  .phase{
+    position:relative;margin-bottom:11px;border:1px solid var(--line);border-radius:8px;
+    background:#0d1526;transition:all .3s;overflow:hidden;
+  }
+  .phase::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#22314f;transition:.3s;
+  }
+  .phase.active{border-color:#2f5188;background:#101c33;box-shadow:0 0 14px rgba(47,123,255,.16)}
+  .phase.active::before{background:var(--blue)}
+  .phase.done::before{background:var(--green)}
+  .phase .ph{
+    display:flex;align-items:center;gap:8px;padding:8px 11px 6px;font-size:12.5px;font-weight:700;
+    color:#7a8aa5;transition:.3s;
+  }
+  .phase.active .ph{color:#9ecbff}
+  .phase.done .ph{color:#8fd6b0}
+  .phase .badge{
+    margin-left:auto;font-size:10px;font-family:Consolas,monospace;color:var(--dim2);
+    border:1px solid #22314f;border-radius:9px;padding:1px 7px;
+  }
+  .phase.done .badge{color:var(--green);border-color:#2c5a44}
+  .phase.active .badge{color:var(--cyan);border-color:#2b4a6b}
+  .phase ul{list-style:none;padding:0 11px 9px}
+  .phase li{
+    font-size:12px;color:#5d6c86;line-height:1.62;padding-left:15px;position:relative;
+    transition:color .3s;
+  }
+  .phase li::before{
+    content:"";position:absolute;left:2px;top:8px;width:5px;height:5px;border-radius:50%;
+    background:#2a3a58;transition:.3s;
+  }
+  .phase li.on{color:#b9cbe4}
+  .phase li.on::before{background:var(--green);box-shadow:0 0 6px var(--green)}
+  .phase li.act{color:#e8f0fb}
+  .phase li.act::before{background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* 场景 4 的下传进度 */
+  .dlbar{margin:4px 0 12px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#0d1526}
+  .dlbar .hd{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:6px}
+  .dlbar .hd b{color:var(--cyan);font-family:Consolas,monospace}
+  .dlbar .tr{height:7px;background:#16233c;border-radius:4px;overflow:hidden}
+  .dlbar .tr i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#2f7bff,#57d6ff);transition:width .25s}
+
+  .legend{
+    flex:0 0 auto;padding:8px 15px;border-top:1px solid var(--line);
+    font-size:10.5px;color:var(--dim2);display:flex;gap:12px;flex-wrap:wrap;background:#0a1220;
+  }
+  .legend span::before{content:"●";margin-right:4px}
+
+  #loading{
+    position:fixed;inset:0;background:#05080f;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:12px;z-index:99;transition:opacity .5s;
+  }
+  #loading .tt{font-size:15px;color:#9ecbff}
+  #loading .bb{width:220px;height:3px;background:#16233c;border-radius:2px;overflow:hidden}
+  #loading .bb i{display:block;height:100%;width:0%;background:var(--blue);transition:width .3s}
+  #loading.hide{opacity:0;pointer-events:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">软件定义卫星 · 演示预览<small>Software-Defined Satellite / Demo Preview</small></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="spacer"></div>
+  <div class="ctrl">
+    <button class="cbtn on" id="btnPlay">⏸ 暂停</button>
+    <button class="cbtn" id="btnSpeed">1.0×</button>
+    <div class="urlinfo" id="urlinfo">URL: <b>?scene=1</b></div>
+  </div>
+</header>
+<div class="progline"><i id="prog"></i></div>
+
+<main>
+  <!-- 左：演示区 -->
+  <section id="stage">
+    <canvas id="gl"></canvas>
+    <div class="hud">
+      <div class="scenebadge">
+        <div class="k" id="hbK">SCENE 01</div>
+        <div class="v" id="hbV">拍摄月亮</div>
+        <div class="s" id="hbS">对月成像 · 姿态指向</div>
+      </div>
+
+      <div class="hudbox" id="hudA" style="right:16px;top:14px;display:none">
+        <div class="lbl" id="hudA_l">—</div>
+        <div class="num" id="hudA_v">—</div>
+        <div class="row2" id="hudA_r">—</div>
+      </div>
+      <div class="hudbox" id="hudB" style="right:16px;top:104px;display:none">
+        <div class="lbl" id="hudB_l">—</div>
+        <div class="num" id="hudB_v">—</div>
+        <div class="row2" id="hudB_r">—</div>
+      </div>
+
+      <div id="hudReticle">
+        <div class="lab" id="reticLab">目标锁定</div>
+        <div class="tl"></div><div class="tr"></div><div class="bl"></div><div class="br"></div>
+      </div>
+
+      <div class="warn" id="warnBox">⚠ 碰撞预警 COLLISION WARNING</div>
+
+      <div class="subtitle">
+        <div class="ph" id="subPh">指令接收</div>
+        <div class="tx" id="subTx">—</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 右：卫星任务栏 -->
+  <aside id="panel">
+    <div class="phead">
+      <div class="t" id="pTitle">拍摄月亮</div>
+      <div class="st" id="pSub">对月成像 · 姿态指向</div>
+      <div class="cap" id="pCap">L2 星上辅助</div>
+    </div>
+    <div class="pbody" id="pBody"></div>
+    <div class="legend">
+      <span style="color:#6fe3a1">已完成</span>
+      <span style="color:#57d6ff">进行中</span>
+      <span style="color:#55647f">待执行</span>
+      <span style="color:#7a8aa5">空格暂停 / 1-4 切场景</span>
+    </div>
+  </aside>
+</main>
+
+<div id="loading">
+  <div class="tt">正在加载三维场景与真实贴图…</div>
+  <div class="bb"><i id="ldBar"></i></div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script>
+/* =========================================================================
+   软件定义卫星 · 演示预览
+   - 四个场景，各自不同的运动语言（动效差异化）
+   - URL 参数切换：?scene=1..4   或   ?t=<任意数字>（取模映射，改变即切换）
+   - 纯前端，离线可用，不依赖任何外部服务
+   ========================================================================= */
+
+/* ---------------- 工具：缓动与插值 ---------------- */
+const EASE = {
+  linear:      t => t,
+  inOutCubic:  t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2,
+  outCubic:    t => 1 - Math.pow(1-t,3),
+  inCubic:     t => t*t*t,
+  outQuint:    t => 1 - Math.pow(1-t,5),
+  inOutSine:   t => -(Math.cos(Math.PI*t)-1)/2,
+  outBack:     t => { const c1=1.70158, c3=c1+1; return 1 + c3*Math.pow(t-1,3) + c1*Math.pow(t-1,2); },
+  outElastic:  t => { const c4=(2*Math.PI)/3; return t===0?0:t===1?1:Math.pow(2,-10*t)*Math.sin((t*10-0.75)*c4)+1; },
+  inQuad:      t => t*t,
+};
+const lerp  = (a,b,t) => a + (b-a)*t;
+const clamp = (v,a,b) => Math.min(b,Math.max(a,v));
+/* 在 [p0,p1] 区间内把 p 归一化并加缓动；区间外用 0/1 */
+const seg = (p,p0,p1,e) => {
+  const t = clamp((p-p0)/(p1-p0), 0, 1);
+  return e ? EASE[e](t) : t;
+};
+const lerpV3 = (a,b,t,out) => out.set(lerp(a.x,b.x,t), lerp(a.y,b.y,t), lerp(a.z,b.z,t));
+const V = (x,y,z) => new THREE.Vector3(x,y,z);
+
+/* ---------------- 天文常量（示意，非真实比例） ---------------- */
+const R_EARTH = 100;
+const ORBIT_R = 252;
+const SAT_Y   = 26;
+const MOON_R  = 108;
+/* 月球方位（示意）：与「卫星看向地球」方向夹角约 30°，大于地球张角 23.4°，
+   因此从卫星看月球不会被地球遮挡（余量约 6.6°）——这是必须满足的几何约束。 */
+const MOON_POS = V(-540, 485, 150);
+const SUN_DIR  = V(1, .28, .55).normalize();
+
+/* 经纬度 → 三维坐标（与等距圆柱贴图对应） */
+function llToVec(lat, lon, r){
+  const phi = (90-lat)*Math.PI/180, th = (lon+180)*Math.PI/180;
+  return V(-r*Math.sin(phi)*Math.cos(th), r*Math.cos(phi), r*Math.sin(phi)*Math.sin(th));
+}
+
+/* =========================================================================
+   场景定义：每场不同的「运动语言」
+   ========================================================================= */
+const SCENES = [
+  {
+    id:1, name:'拍摄月亮', sub:'对月成像 · 姿态指向 + 月球定标', cap:'L2 星上辅助',
+    dur:21, motion:'平滑环绕 · 大范围缓动',
+    phases:[
+      { k:'指令接收', at:.00, items:['地面站上注任务：拍摄月球'] },
+      { k:'自感知',   at:.14, items:['取轨道位置与速度','读当前姿态与角速度','查月球星历解算方位','判断地球遮挡与太阳夹角'] },
+      { k:'自决策',   at:.34, items:['解算目标指向姿态','规划最短角距机动路径','估算机动耗时与过曝风险','排定成像时刻与曝光参数'] },
+      { k:'自执行',   at:.56, items:['反作用飞轮输出力矩机动','星敏精定姿（指向误差 < 0.1°）','相机加电自动测光','多帧成像并压缩存储'] },
+      { k:'数据回传', at:.84, items:['等待地面站可见窗口','下传月球图像与遥测'] },
+    ],
+    drive: driveMoon
+  },
+  {
+    id:2, name:'轨道异常自主规避', sub:'识别 → 计算 → 变轨 → 恢复', cap:'L3 星上自主（前沿）',
+    dur:23, motion:'急促变焦 · 轨迹急偏 · 告警脉冲',
+    phases:[
+      { k:'异常感知', at:.00, items:['星载探测发现接近目标','多帧跟踪提取方位与运动','判别为报废卫星 / 碎片'] },
+      { k:'自感知',   at:.20, items:['自身精密定轨','外推双方轨迹','计算最近接近时刻与最小距离','评估碰撞概率 Pc'] },
+      { k:'自决策',   at:.42, items:['Pc 超安全阈值 → 判定需规避','选择机动策略（抬升 / 降低）','计算最小 Δv 与点火时刻','校验推进剂余量'] },
+      { k:'自执行',   at:.58, items:['姿态机动使推力轴对准','推力器点火施加 Δv','轨道抬升，双方安全错开','重新定轨确认风险解除'] },
+      { k:'轨道恢复', at:.84, items:['施加反向小 Δv','返回标称轨道','生成规避报告并下传'] },
+    ],
+    drive: driveAvoid
+  },
+  {
+    id:3, name:'拍摄美国上空标记物', sub:'轨道预报 · 过境窗口 · 对地成像', cap:'L2 星上辅助',
+    dur:21, motion:'高空俯冲 · 地球自转定位 · 地面横扫',
+    phases:[
+      { k:'指令接收', at:.00, items:['上注任务：拍摄美国上空标记物（含经纬度）'] },
+      { k:'自感知',   at:.16, items:['取轨道位置速度','读当前姿态','解析目标点坐标','读电源与存储余量'] },
+      { k:'自决策',   at:.36, items:['轨道预报算过境时刻','计算可观测窗口与侧摆角','多任务优先级排序','排定成像时序与曝光'] },
+      { k:'自执行',   at:.56, items:['姿态预置 → 对地指向机动','精指向稳定','按条带推扫成像','压缩存储并打标签'] },
+      { k:'数据回传', at:.84, items:['关联最近地面站窗口','按优先级下传图像'] },
+    ],
+    drive: driveGround
+  },
+  {
+    id:4, name:'图像数据回传', sub:'星上存储 → 过境建链 → 数传下传', cap:'L2 星上辅助',
+    dur:19, motion:'垂直数据流 · 链路脉冲 · 进度累积',
+    phases:[
+      { k:'数据就绪', at:.00, items:['图像压缩打包','附加辅助数据（时刻 / 姿态 / 参数）','存入星上固态存储器'] },
+      { k:'自感知',   at:.18, items:['监测存储余量与待传队列','预报下一地面站可见窗口','监测链路状态'] },
+      { k:'自决策',   at:.38, items:['制定下传计划（优先级排序）','选择下行速率与调制方式','必要时星上压缩或降分辨率'] },
+      { k:'自执行',   at:.56, items:['姿态调整使数传天线对准地面站','建立测控 / 数传链路','按优先级下传并校验重传','释放存储空间'] },
+      { k:'地面接收', at:.86, items:['地面站接收解调','数据校核并分发给用户'] },
+    ],
+    drive: driveDownlink
+  },
+];
+
+/* =========================================================================
+   三维场景搭建
+   ========================================================================= */
+let renderer, scene, camera, sun, earthGrp, earthMesh, cloudMesh, atmMesh,
+    moonMesh, satGrp, satLens, satFlame, stationGrp, stationDish, orbitLine,
+    debrisMesh, debrisTrail, satTrail, linkBeam, packets = [], packetGrp,
+    swathBand, targetMark, sigRings = [];
+
+function initThree(){
+  const cv = document.getElementById('gl');
+  renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true, alpha:false});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(cv.clientWidth, cv.clientHeight, false);
+  if (THREE.sRGBEncoding !== undefined) renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.setClearColor(0x02040a, 1);
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(46, cv.clientWidth/cv.clientHeight, .1, 30000);
+
+  /* --- 星空 --- */
+  const sg = new THREE.BufferGeometry();
+  const N = 2600, pos = new Float32Array(N*3);
+  for (let i=0;i<N;i++){
+    const r = 3200 + Math.random()*5200;
+    const th = Math.random()*Math.PI*2, ph = Math.acos(2*Math.random()-1);
+    pos[i*3]   = r*Math.sin(ph)*Math.cos(th);
+    pos[i*3+1] = r*Math.cos(ph);
+    pos[i*3+2] = r*Math.sin(ph)*Math.sin(th);
+  }
+  sg.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  scene.add(new THREE.Points(sg, new THREE.PointsMaterial({
+    color:0xcfe0ff, size:7, sizeAttenuation:true, transparent:true, opacity:.85, depthWrite:false
+  })));
+
+  /* --- 光照（太阳） --- */
+  sun = new THREE.DirectionalLight(0xfff4e0, 1.5);
+  sun.position.copy(SUN_DIR).multiplyScalar(3000);
+  scene.add(sun);
+  scene.add(new THREE.AmbientLight(0x2a3a55, .55));
+
+  /* --- 地球（真实贴图 + 云层 + 大气辉光） --- */
+  const L = new THREE.TextureLoader();
+  const tEarth = L.load('assets/earth_atmos.jpg');
+  const tSpec  = L.load('assets/earth_specular.jpg');
+  const tCloud = L.load('assets/earth_clouds.png');
+  [tEarth,tSpec,tCloud].forEach(t=>{ if(THREE.sRGBEncoding!==undefined) t.encoding = THREE.sRGBEncoding; });
+
+  earthGrp = new THREE.Group(); scene.add(earthGrp);
+  earthMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(R_EARTH, 96, 64),
+    new THREE.MeshPhongMaterial({ map:tEarth, specularMap:tSpec, specular:0x5577aa, shininess:18 })
+  );
+  earthGrp.add(earthMesh);
+  cloudMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(R_EARTH*1.012, 80, 56),
+    new THREE.MeshPhongMaterial({ map:tCloud, transparent:true, opacity:.42, depthWrite:false })
+  );
+  earthGrp.add(cloudMesh);
+  /* 大气辉光：背面渲染的稍大球体 */
+  atmMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(R_EARTH*1.08, 64, 48),
+    new THREE.MeshBasicMaterial({ color:0x3f8fe0, transparent:true, opacity:.14,
+      side:THREE.BackSide, blending:THREE.AdditiveBlending, depthWrite:false })
+  );
+  earthGrp.add(atmMesh);
+
+  /* --- 月球（真实贴图，靠定向光照自然呈现月相） --- */
+  moonMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(MOON_R, 72, 48),
+    new THREE.MeshPhongMaterial({ map:L.load('assets/moon.jpg'), shininess:2 })
+  );
+  moonMesh.material.map.encoding = THREE.sRGBEncoding;
+  moonMesh.position.copy(MOON_POS);
+  scene.add(moonMesh);
+
+  /* --- 卫星（3D 组合体：星体 + 双翼 + 相机载荷 + 推力器） --- */
+  satGrp = buildSatellite();
+  scene.add(satGrp);
+
+  /* --- 轨道环 --- */
+  const oPts = [];
+  for (let i=0;i<=256;i++){
+    const a = i/256*Math.PI*2;
+    oPts.push(V(ORBIT_R*Math.cos(a), SAT_Y*Math.sin(a), ORBIT_R*Math.sin(a)));
+  }
+  const oGeo = new THREE.BufferGeometry().setFromPoints(oPts);
+  orbitLine = new THREE.Line(oGeo, new THREE.LineBasicMaterial({
+    color:0x5b8fd0, transparent:true, opacity:.42
+  }));
+  scene.add(orbitLine);
+
+  /* --- 地面站（天线段） --- */
+  stationGrp = buildStation();
+  earthGrp.add(stationGrp);     // 挂在地球下，随地球自转一起转
+
+  /* --- 空间碎片 / 报废卫星（场景 2） --- */
+  debrisMesh = buildDebris();
+  scene.add(debrisMesh);
+
+  /* --- 轨迹拖尾 --- */
+  satTrail    = makeTrail(0x57d6ff);
+  debrisTrail = makeTrail(0xff6b6b);
+  scene.add(satTrail.line); scene.add(debrisTrail.line);
+
+  /* --- 链路光束（场景 4） --- */
+  linkBeam = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.1, 1.1, 1, 8, 1, true),
+    new THREE.MeshBasicMaterial({ color:0x57d6ff, transparent:true, opacity:.3,
+      side:THREE.DoubleSide, blending:THREE.AdditiveBlending, depthWrite:false })
+  );
+  linkBeam.visible = false;
+  scene.add(linkBeam);
+
+  /* --- 数据包粒子（场景 4） --- */
+  packetGrp = new THREE.Group(); scene.add(packetGrp);
+  const pGeo = new THREE.SphereGeometry(2.3, 10, 8);
+  const pMat = new THREE.MeshBasicMaterial({ color:0xffd166, transparent:true, opacity:.95,
+    blending:THREE.AdditiveBlending, depthWrite:false });
+  for (let i=0;i<26;i++){
+    const m = new THREE.Mesh(pGeo, pMat.clone());
+    m.visible = false; packetGrp.add(m);
+    packets.push({ mesh:m, t:Math.random(), spd:.5+Math.random()*.35 });
+  }
+
+  /* --- 成像条带（场景 3） --- */
+  swathBand = new THREE.Mesh(
+    new THREE.TorusGeometry(R_EARTH*1.022, 7, 6, 120, Math.PI*0.34),
+    new THREE.MeshBasicMaterial({ color:0xffd166, transparent:true, opacity:.5,
+      blending:THREE.AdditiveBlending, depthWrite:false })
+  );
+  swathBand.visible = false;
+  earthGrp.add(swathBand);      // 挂在地球下，随地球自转一起转
+
+  /* --- 目标标记（场景 3） --- */
+  targetMark = new THREE.Mesh(
+    new THREE.SphereGeometry(3.2, 14, 10),
+    new THREE.MeshBasicMaterial({ color:0x6fe3a1, transparent:true, opacity:.95 })
+  );
+  targetMark.visible = false;
+  earthGrp.add(targetMark);
+
+  /* --- 信号脉冲环（地面站） --- */
+  for (let i=0;i<3;i++){
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(1, 1.35, 40),
+      new THREE.MeshBasicMaterial({ color:0x57d6ff, transparent:true, opacity:.7,
+        side:THREE.DoubleSide, blending:THREE.AdditiveBlending, depthWrite:false })
+    );
+    ring.visible = false; ring.userData.ph = i/3;
+    scene.add(ring); sigRings.push(ring);
+  }
+
+  window.addEventListener('resize', onResize);
+  onResize();
+}
+
+/* --- 卫星模型 --- */
+function buildSatellite(){
+  const g = new THREE.Group();
+  const bodyMat = new THREE.MeshPhongMaterial({ color:0xd8e2f0, shininess:42, specular:0x667788 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(14,18,14), bodyMat);
+  g.add(body);
+  // 顶部（蓝）与底部（金）
+  const top = new THREE.Mesh(new THREE.BoxGeometry(14.3,2.4,14.3),
+    new THREE.MeshPhongMaterial({ color:0x7fb3ff, shininess:60 }));
+  top.position.y = 8.2; g.add(top);
+  const bot = new THREE.Mesh(new THREE.BoxGeometry(14.3,2.4,14.3),
+    new THREE.MeshPhongMaterial({ color:0xc9a227, shininess:80, specular:0xffe9a0 }));
+  bot.position.y = -8.2; g.add(bot);
+  // 太阳翼 ±X
+  const pMat = new THREE.MeshPhongMaterial({ color:0x1d3a66, shininess:90, specular:0x4466aa });
+  for (const s of [-1,1]){
+    const p = new THREE.Mesh(new THREE.BoxGeometry(48,1.2,17), pMat);
+    p.position.set(s*31, 0, 0); g.add(p);
+    for (let i=1;i<4;i++){
+      const ln = new THREE.Mesh(new THREE.BoxGeometry(.7,1.5,17),
+        new THREE.MeshBasicMaterial({ color:0x0a1322 }));
+      ln.position.set(s*(31-24+i*12), 0, 0); g.add(ln);
+    }
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(1,1,8,8),
+      new THREE.MeshPhongMaterial({ color:0x99a8bb }));
+    arm.rotation.z = Math.PI/2; arm.position.set(s*9, 0, 0); g.add(arm);
+  }
+  // 相机载荷（+Z 为视线方向）
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.4,8,18),
+    new THREE.MeshPhongMaterial({ color:0x12253d, shininess:60 }));
+  barrel.rotation.x = Math.PI/2; barrel.position.set(0,-2.5,11); g.add(barrel);
+  satLens = new THREE.Mesh(new THREE.CylinderGeometry(2.5,2.5,1.4,18),
+    new THREE.MeshBasicMaterial({ color:0x6fe3a1 }));
+  satLens.rotation.x = Math.PI/2; satLens.position.set(0,-2.5,15.2); g.add(satLens);
+  // 数传天线（-Y）
+  const ant = new THREE.Mesh(new THREE.CylinderGeometry(.6,.6,9,8),
+    new THREE.MeshPhongMaterial({ color:0x9fb3cc }));
+  ant.position.set(0,-13,0); g.add(ant);
+  const dish = new THREE.Mesh(new THREE.SphereGeometry(4.4, 18, 12, 0, Math.PI*2, 0, Math.PI/2.6),
+    new THREE.MeshPhongMaterial({ color:0xb9c8dc, shininess:70, side:THREE.DoubleSide }));
+  dish.position.set(0,-17,0); dish.rotation.x = Math.PI; g.add(dish);
+  // 推力器喷焰（变轨点火时才显示）
+  satFlame = new THREE.Mesh(new THREE.ConeGeometry(3.4, 15, 14),
+    new THREE.MeshBasicMaterial({ color:0xffd166, transparent:true, opacity:.85,
+      blending:THREE.AdditiveBlending, depthWrite:false }));
+  satFlame.rotation.x = -Math.PI/2;          // 锥尖朝 -Z（向后喷）
+  satFlame.position.set(0, -2.5, -15);
+  satFlame.visible = false;
+  g.add(satFlame);
+  return g;
+}
+
+/* --- 碎片 / 报废卫星 --- */
+function buildDebris(){
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(new THREE.BoxGeometry(9,11,9),
+    new THREE.MeshPhongMaterial({ color:0x6b5a4a, shininess:12 }));
+  g.add(b);
+  const p1 = new THREE.Mesh(new THREE.BoxGeometry(26,.9,10),
+    new THREE.MeshPhongMaterial({ color:0x3a3630 }));
+  p1.position.x = 18; g.add(p1);
+  const p2 = p1.clone(); p2.position.x = -18; g.add(p2);
+  // 破损标记
+  const mk = new THREE.Mesh(new THREE.SphereGeometry(2.2, 10, 8),
+    new THREE.MeshBasicMaterial({ color:0xff6b6b, transparent:true, opacity:.9 }));
+  mk.position.set(0,7,0); g.add(mk);
+  /* 红色警示环：让观众一眼识别"危险目标"（Sprite 恒面向相机，不会因角度消失） */
+  const warnTex = makeRingTexture();
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map:warnTex, color:0xffffff, transparent:true, opacity:.95,
+    blending:THREE.AdditiveBlending, depthWrite:false }));
+  spr.scale.set(52, 52, 1);
+  g.add(spr);
+  g.userData.warnSpr = spr;
+  g.visible = false;
+  return g;
+}
+
+/* 程序生成「警示环」贴图（双环 + 四角刻度），无需外部图片 */
+function makeRingTexture(){
+  const S = 256, cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const c = cv.getContext('2d');
+  c.clearRect(0,0,S,S);
+  c.strokeStyle = 'rgba(255,107,107,.95)';
+  c.lineWidth = 7;
+  c.beginPath(); c.arc(S/2, S/2, S/2-16, 0, Math.PI*2); c.stroke();
+  c.strokeStyle = 'rgba(255,107,107,.45)';
+  c.lineWidth = 3;
+  c.beginPath(); c.arc(S/2, S/2, S/2-34, 0, Math.PI*2); c.stroke();
+  /* 四个刻度 */
+  c.strokeStyle = 'rgba(255,107,107,.95)';
+  c.lineWidth = 9;
+  for (let i=0;i<4;i++){
+    const a = i*Math.PI/2 + Math.PI/4;
+    const r1 = S/2-38, r2 = S/2-10;
+    c.beginPath();
+    c.moveTo(S/2+Math.cos(a)*r1, S/2+Math.sin(a)*r1);
+    c.lineTo(S/2+Math.cos(a)*r2, S/2+Math.sin(a)*r2);
+    c.stroke();
+  }
+  const t = new THREE.CanvasTexture(cv);
+  return t;
+}
+
+/* --- 地面站 --- */
+function buildStation(){
+  const g = new THREE.Group();
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(6,8,3,20),
+    new THREE.MeshPhongMaterial({ color:0x3a4658 }));
+  g.add(base);
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(1.6,2,14,12),
+    new THREE.MeshPhongMaterial({ color:0x8b98a8 }));
+  mast.position.y = 8; g.add(mast);
+  stationDish = new THREE.Mesh(
+    new THREE.SphereGeometry(13, 26, 18, 0, Math.PI*2, 0, Math.PI/2.5),
+    new THREE.MeshPhongMaterial({ color:0xc3d0e0, shininess:80, side:THREE.DoubleSide })
+  );
+  stationDish.position.y = 17;
+  stationDish.rotation.x = -Math.PI/3.1;
+  g.add(stationDish);
+  g.visible = true;
+  return g;
+}
+
+/* --- 拖尾线 --- */
+const TRAIL_N = 150;
+function makeTrail(color){
+  const geo = new THREE.BufferGeometry();
+  const arr = new Float32Array(TRAIL_N*3);
+  geo.setAttribute('position', new THREE.BufferAttribute(arr,3));
+  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
+    color, transparent:true, opacity:.75, blending:THREE.AdditiveBlending, depthWrite:false
+  }));
+  line.frustumCulled = false;
+  return { line, arr, n:0 };
+}
+function pushTrail(tr, v){
+  if (tr.n < TRAIL_N){ tr.n++; }
+  for (let i=tr.n-1;i>0;i--){
+    tr.arr[i*3]=tr.arr[(i-1)*3]; tr.arr[i*3+1]=tr.arr[(i-1)*3+1]; tr.arr[i*3+2]=tr.arr[(i-1)*3+2];
+  }
+  tr.arr[0]=v.x; tr.arr[1]=v.y; tr.arr[2]=v.z;
+  tr.line.geometry.setDrawRange(0, tr.n);
+  tr.line.geometry.attributes.position.needsUpdate = true;
+}
+function clearTrail(tr){ tr.n = 0; tr.line.geometry.setDrawRange(0,0); }
+
+/* --- 卫星在轨位置 --- */
+function satPosAt(angleDeg, radius, incl){
+  const a = angleDeg*Math.PI/180;
+  return V(radius*Math.cos(a), (incl||SAT_Y)*Math.sin(a), radius*Math.sin(a));
+}
+
+function onResize(){
+  const cv = document.getElementById('gl');
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+}
+
+/* =========================================================================
+   四个场景的「运动语言」
+   ========================================================================= */
+function hideAll(){
+  debrisMesh.visible = false; debrisTrail.line.visible = false; satTrail.line.visible = false;
+  linkBeam.visible = false; swathBand.visible = false; targetMark.visible = false;
+  packets.forEach(p=>p.mesh.visible=false);
+  sigRings.forEach(r=>r.visible=false);
+  stationGrp.visible = false;
+  if (satFlame) satFlame.visible = false;
+  orbitLine.visible = true;
+  if (earthGrp) earthGrp.rotation.y = 0;      // 重置地球自转，避免场景间残留
+}
+
+let satellite = null;
+
+/* ---------- 场景 1：拍摄月亮（平滑环绕 · 大范围缓动） ---------- */
+function driveMoon(p, t, dt){
+  const ang = -40 + 26*p;                       // 卫星沿轨缓行
+  const sp  = satPosAt(ang, ORBIT_R, SAT_Y);
+  satellite.position.copy(sp);
+  satellite.lookAt(moonMesh.position);          // 相机镜头(+Z)指向月球
+  satLens.material.color.setHex(0x6fe3a1);
+
+  const camPos = V(), look = V();
+
+  if (p < .30){
+    /* 段落 1：全景 —— 地球 + 轨道 + 卫星 */
+    const k = seg(p, 0, .30, 'inOutCubic');
+    lerpV3(V(80, 330, 800), V(230, 190, 590), k, camPos);
+    lerpV3(V(0,0,0), V(30,10,20), k, look);
+    orbitLine.visible = true;
+    reticle(false); warn(false);
+    hud('A', '观测模式', '对地全景', '地球与轨道态势');
+    hud('B', '卫星状态', '在轨运行', '等待任务指令');
+    hudTone(''); hudBTone('');
+    sub('指令接收', '地面站上注任务：拍摄月球');
+  } else if (p < .56){
+    /* 段落 2：推向卫星 —— 姿态机动开始 */
+    const k = seg(p, .30, .56, 'inOutCubic');
+    const near = sp.clone().add(V(0, 54, 142));
+    lerpV3(V(230,190,590), near, k, camPos);
+    lerpV3(V(30,10,20), sp, k, look);
+    orbitLine.visible = true;
+    reticle(false); warn(false);
+    const yawErr = lerp(8.4, .35, seg(p,.30,.56,'outCubic'));
+    hud('A', '姿态指向误差', yawErr.toFixed(2)+'°', '目标：月球');
+    hud('B', '控制模式', '姿态机动中', '反作用飞轮输出力矩');
+    hudTone(yawErr > 2 ? 'amber' : 'green'); hudBTone('');
+    sub(p<.40?'自感知':'自决策',
+        p<.40 ? '取轨道位置速度 · 读当前姿态与角速度 · 查月球星历解算方位 · 判断地球遮挡与太阳夹角'
+              : '解算目标指向姿态 · 规划最短角距机动路径 · 估算机动耗时与过曝风险 · 排定曝光参数');
+  } else if (p < .82){
+    /* 段落 3：从卫星侧后方沿视轴推进 —— 卫星滑出画面，月球逐渐充满视野 */
+    const k = seg(p, .56, .82, 'inOutSine');
+    const dir  = moonMesh.position.clone().sub(sp).normalize();
+    const side = new THREE.Vector3(0,1,0).cross(dir).normalize();
+    const upv  = dir.clone().cross(side).normalize();
+    const adv  = lerp(-220, 430, Math.pow(k, 2.2));   // 沿视轴推进（前段缓、后段快）
+    camPos.copy(sp)
+      .addScaledVector(dir,  adv)
+      .addScaledVector(side, lerp(110, 88, k))
+      .addScaledVector(upv,  lerp(46, 30, k));
+    // 视线始终锁定月球
+    look.copy(moonMesh.position);
+    orbitLine.visible = false;
+    const lock = p > .62;
+    reticle(lock);
+    warn(false);
+    const err = lerp(.35, .05, seg(p,.56,.82,'outQuint'));
+    hud('A', '指向误差', err.toFixed(2)+'°', lock ? '已锁定月球 ✓' : '星敏精定姿');
+    hud('B', '相机状态', p<.70?'自动测光':(p<.78?'成像中':'成像完成'),
+                p<.70?'月球亮度高 · 短曝光防过曝':(p<.78?'多帧成像':'图像已压缩存储'));
+    hudTone('green'); hudBTone(p<.70?'amber':'green');
+    sub('自执行', p<.70 ? '星敏精定姿（指向误差优于 0.1°）→ 相机加电自动测光'
+                        : '多帧成像 → 图像压缩存储（含成像时刻 / 姿态 / 曝光参数）');
+  } else {
+    /* 段落 4：目光从月球移回地球 —— 成像完成，准备下传 */
+    const k = seg(p, .82, 1, 'outCubic');
+    const dir  = moonMesh.position.clone().sub(sp).normalize();
+    const side = new THREE.Vector3(0,1,0).cross(dir).normalize();
+    const upv  = dir.clone().cross(side).normalize();
+    const from = sp.clone().addScaledVector(dir, 430)
+                          .addScaledVector(side, 88).addScaledVector(upv, 30);
+    const to   = V(560, 190, -30);
+    lerpV3(from, to, k, camPos);
+    lerpV3(moonMesh.position, V(0, 25, 0), seg(p,.82,1,'inOutCubic'), look);
+    orbitLine.visible = k > .5;
+    reticle(false); warn(false);
+    hud('A', '成像结果', '月球图像', '已存入星上存储器');
+    hud('B', '数据下传', '等待地面站窗口', '过境建链后按优先级下传');
+    hudTone('green'); hudBTone('amber');
+    sub('数据回传', '等待地面站可见窗口 → 下传月球图像与遥测数据（详见场景 4）');
+  }
+
+  /* 关键：地球与月球保持相对固定的光照关系 */
+  earthGrp.rotation.y += dt*0.035;
+  cloudMesh.rotation.y += dt*0.012;
+  moonMesh.rotation.y   += dt*0.02;
+
+  camera.position.copy(camPos);
+  camera.lookAt(look);
+}
+
+/* ---------- 场景 2：轨道异常自主规避（急促变焦 · 轨迹急偏） ---------- */
+let avoidAng = 0;
+function driveAvoid(p, t, dt){
+  /* hideAll() 会关闭所有元素，本场景需要的必须在此显式打开 */
+  debrisMesh.visible = true;
+  debrisTrail.line.visible = true;
+  satTrail.line.visible = true;
+
+  const ang = 12 + 8*p;
+  const sp  = satPosAt(ang, ORBIT_R, SAT_Y);
+
+  /* 碎片：沿交会轨迹逼近 → 变轨后错开 */
+  const appDir = V(-.62, .12, .78).normalize();
+  let gap;                                       // 相对距离（km，示意）
+  if (p < .46)      gap = lerp(12.4, 0.62, seg(p, 0, .46, 'inQuad'));
+  else if (p < .62) gap = lerp(0.62, 1.6, seg(p,.46,.62,'outCubic'));
+  else              gap = lerp(1.6, 6.8, seg(p,.62,1,'outCubic'));
+  const sceneGap = 40 + gap*8.5;                 // 压缩到可视范围（保持两者都入画）
+  const debPos = sp.clone().addScaledVector(appDir, sceneGap).add(V(0, gap*1.2, 0));
+
+  /* 变轨后卫星轨道抬升（半径变化，观众可见） */
+  const burn = seg(p, .46, .60, 'outCubic');
+  const newR = ORBIT_R + burn*34;
+  satellite.position.copy(satPosAt(ang, newR, SAT_Y));
+  const dNow = debPos.clone().sub(satellite.position);
+  const dirDeb = dNow.clone().normalize();
+  satellite.lookAt(satellite.position.clone().addScaledVector(dirDeb, 100));  // 镜头对准碎片
+
+  debrisMesh.position.copy(debPos);
+  debrisMesh.rotation.y += dt*.5; debrisMesh.rotation.x += dt*.2;
+  /* 警示环脉动：越危险闪得越快；尺寸随相机距离自适应，避免近距离盖住卫星 */
+  const spr = debrisMesh.userData.warnSpr;
+  if (spr){
+    const urg = clamp((12.4-gap)/12.4, 0, 1);
+    const camD = camera.position.distanceTo(debPos);
+    const base = clamp(camD*0.115, 26, 96);
+    const sc = base * (1 + .09*Math.sin(t*(3+urg*9)));
+    spr.scale.set(sc, sc, 1);
+    spr.material.opacity = .55 + .42*Math.abs(Math.sin(t*(2+urg*7)));
+  }
+
+  /* 拖尾 */
+  pushTrail(satTrail, satellite.position.clone());
+  pushTrail(debrisTrail, debPos.clone());
+
+  /* 推力器喷焰（点火段） */
+  const firing = p > .47 && p < .60;
+  satLens.material.color.setHex(firing ? 0xffd166 : 0x6fe3a1);
+  if (satFlame){
+    satFlame.visible = firing;
+    if (firing){
+      satFlame.scale.set(1 + .3*Math.sin(t*24), 1 + .45*Math.abs(Math.sin(t*19)), 1 + .3*Math.cos(t*21));
+      satFlame.material.opacity = .62 + .32*Math.abs(Math.sin(t*17));
+    }
+  }
+
+  /* 镜头语言：自适应机位 —— 始终把「卫星 + 碎片」都框在画面内
+     （碎片若落在视野外，观众就看不懂"在躲什么"，这是必须保证的取景约束） */
+  const camPos = V(), look = V();
+  const mid = satellite.position.clone().lerp(debPos, .5);
+  const axis = debPos.clone().sub(satellite.position);
+  const sep  = Math.max(axis.length(), 1);
+  axis.normalize();
+  /* 相机方向：垂直于两者连线，再抬高一点，形成侧视俯角 */
+  let camDir = new THREE.Vector3().crossVectors(axis, V(0,1,0));
+  if (camDir.lengthSq() < 1e-4) camDir = V(0, 0, 1);
+  camDir.normalize();
+  /* 逼近阶段快速推近（急促），之后缓慢拉开 */
+  const zoomIn = seg(p, 0, .30, 'outQuint');
+  const camDist = lerp(760, Math.max(300, sep*3.0), zoomIn);
+  camPos.copy(mid)
+        .addScaledVector(camDir, camDist*0.80)
+        .addScaledVector(V(0,1,0), camDist*0.40);
+  look.copy(mid);
+  /* 危险逼近时轻微抖动，强化紧张感 */
+  if (gap < 3.2 && p < .62){
+    const sh = (3.2-gap)/3.2*5.2;
+    camPos.x += (Math.random()-.5)*sh;
+    camPos.y += (Math.random()-.5)*sh;
+    camPos.z += (Math.random()-.5)*sh;
+  }
+
+  /* HUD */
+  const pct = Math.round(gap/12.4*100);
+  const risky = gap < 2.2;
+  hud('A', '最近接近距离', gap.toFixed(2)+' km', '相对速度 11.3 km/s'+(risky?' · ⚠ 危险':''));
+  hudTone(risky ? 'red' : (gap<5?'amber':''));
+  hud('B', '碰撞概率 Pc', (p<.46? (pct/100*0.9+0.05).toFixed(2) : '↓ 已下降'), p<.46?'超阈值 1e-4 → 判定需规避':'规避机动后重新评估');
+  warn(p > .26 && p < .56, '⚠ 碰撞预警 COLLISION WARNING');
+
+  /* 准星跟随碎片在屏幕上的位置（观察目标是谁，观众要看得见） */
+  if (p > .52 && p < .88){
+    const ndc = debPos.clone().project(camera);
+    const st = document.getElementById('stage');
+    const sx = (ndc.x*.5 + .5)*st.clientWidth;
+    const sy = (-ndc.y*.5 + .5)*st.clientHeight;
+    const inView = ndc.z < 1 && sx > 0 && sx < st.clientWidth && sy > 0 && sy < st.clientHeight;
+    reticle(inView);
+    if (inView){
+      const el = document.getElementById('hudReticle');
+      el.style.left = sx + 'px';
+      el.style.top  = sy + 'px';
+      el.style.transform = 'translate(-50%,-50%)';
+    }
+    document.getElementById('reticLab').textContent = '目标锁定 · 报废卫星';
+  } else {
+    reticle(false);
+    const el = document.getElementById('hudReticle');
+    el.style.left = '50%'; el.style.top = '50%';
+    el.style.transform = 'translate(-50%,-50%)';
+  }
+
+  /* 字幕 */
+  if (p < .20)      sub('异常感知','星载探测发现接近目标（报废卫星）→ 多帧跟踪 → 判别目标类型');
+  else if (p < .42) sub('自感知','自身精密定轨 → 外推双方轨迹 → 计算最近接近时刻与最小距离 → 评估碰撞概率');
+  else if (p < .58) sub('自决策','碰撞概率超阈值 → 选择机动策略（轨道抬升）→ 计算最小 Δv 与点火时刻');
+  else if (p < .84) sub('自执行', p<.62 ? '姿态机动使推力轴对准方向 → 推力器点火施加 Δv'
+                                        : 'Δv 已施加 → 轨道抬升，双方安全错开 → 重新定轨确认风险解除');
+  else              sub('轨道恢复','择机施加反向小 Δv → 返回标称轨道 → 生成规避报告并下传地面');
+
+  camera.position.copy(camPos); camera.lookAt(look);
+}
+
+/* ---------- 场景 3：拍摄美国上空（俯冲 · 自转定位 · 横扫） ---------- */
+const TGT_LAT = 39.2, TGT_LON = -98.4;    // 美国中部（示意）
+function driveGround(p, t, dt){
+  /* 地球自转：快速转到目标朝向相机，然后减速稳住 */
+  const base = llToVec(TGT_LAT, TGT_LON, 1);
+  const yawNeeded = Math.atan2(-base.x, base.z);
+  let yaw;
+  if (p < .34)      yaw = lerp(yawNeeded*0.85 - Math.PI*1.15, yawNeeded, seg(p,0,.34,'outQuint'));
+  else              yaw = yawNeeded;
+  earthGrp.rotation.y = yaw;
+  cloudMesh.rotation.y = yaw + t*0.01;
+
+  const tgtWorld = llToVec(TGT_LAT, TGT_LON, R_EARTH);
+  tgtWorld.applyAxisAngle(V(0,1,0), yaw);
+
+  /* 卫星：过境目标上空 */
+  const over = seg(p, .30, .70, 'inOutSine');
+  const satAng = -24 + 40*p;
+  const spBase = satPosAt(satAng, ORBIT_R, SAT_Y);
+  const sp = spBase.clone().lerp(tgtWorld.clone().multiplyScalar(ORBIT_R/R_EARTH).add(V(0,SAT_Y,0)), over*0.72);
+  satellite.position.copy(sp);
+
+  const look = tgtWorld.clone().sub(sp).normalize();
+  satellite.lookAt(satellite.position.clone().addScaledVector(look, 200));
+  satLens.material.color.setHex(0x6fe3a1);
+
+  /* 目标标记 + 成像条带（用地球局部坐标，随地球自转一起转） */
+  targetMark.position.copy(llToVec(TGT_LAT, TGT_LON, R_EARTH*1.012));
+  targetMark.visible = p > .26;
+  targetMark.scale.setScalar(1 + .40*Math.sin(t*4));
+
+  const latRad = TGT_LAT*Math.PI/180;
+  const bandR  = R_EARTH*Math.cos(latRad)*1.006;
+  const sw = seg(p, .56, .92, 'inOutCubic');
+  swathBand.visible = p > .56;
+  if (swathBand.visible){
+    if (Math.abs((swathBand.userData.r0||0) - bandR) > .5){
+      swathBand.geometry.dispose();
+      swathBand.geometry = new THREE.TorusGeometry(bandR, 5.5, 6, 150, Math.PI*0.30);
+      swathBand.userData.r0 = bandR;
+    }
+    swathBand.position.set(0, R_EARTH*Math.sin(latRad), 0);
+    swathBand.rotation.set(Math.PI/2, 0, 0);
+    swathBand.rotation.y = -sw*1.9 + 1.0;        // 沿经度方向横扫
+    swathBand.material.opacity = .26 + .32*Math.sin(t*3);
+  }
+
+  /* 镜头：高空环绕 → 俯冲下压 → 侧摆视角 */
+  const camPos = V(), camLook = V();
+  if (p < .34){
+    const k = seg(p, 0, .34, 'inOutCubic');
+    lerpV3(V(0, 900, 940), V(0, 330, 520), k, camPos);      // 俯冲下压
+    lerpV3(V(0,0,0), tgtWorld.clone().multiplyScalar(.7), k, camLook);
+  } else if (p < .62){
+    const k = seg(p, .34, .62, 'inOutCubic');
+    const a = V(0, 330, 520);
+    const b = tgtWorld.clone().multiplyScalar(1.95).add(V(0, 96, 0));
+    lerpV3(a, b, k, camPos);
+    lerpV3(tgtWorld.clone().multiplyScalar(.7), tgtWorld, k, camLook);
+  } else {
+    const k = seg(p, .62, 1, 'inOutSine');
+    const b = tgtWorld.clone().multiplyScalar(1.95).add(V(0, 96, 0));
+    /* 侧摆视角：把地球与卫星都收进画面（末帧不再切边） */
+    const c = tgtWorld.clone().multiplyScalar(2.55).add(V(96, 205, 66));
+    lerpV3(b, c, k, camPos);
+    lerpV3(tgtWorld, tgtWorld.clone().lerp(satellite.position, .30), k, camLook);
+  }
+
+  /* HUD */
+  hud('A', '目标点', TGT_LAT.toFixed(1)+'°N  '+Math.abs(TGT_LON).toFixed(1)+'°W', '美国中部（示意）');
+  hud('B', p<.56?'过境窗口':(p<.92?'成像条带':'成像完成'),
+            p<.56?'预计 T-4 分 12 秒':(p<.92?'推扫中 · 侧摆 0°':'共 24 帧已存储'),
+            p<.56?'轨道预报已确认可观测':'分辨率 0.8 m · 可见光');
+  hudBTone(p<.56?'amber':'green');
+  reticle(p > .60 && p < .92);
+  warn(false);
+
+  if (p < .16)      sub('指令接收','地面站上注任务：拍摄美国上空标记物（含目标经纬度）');
+  else if (p < .36) sub('自感知','取轨道位置速度 · 读当前姿态 · 解析目标点坐标 · 读电源与存储余量');
+  else if (p < .56) sub('自决策','轨道预报算过境时刻 → 计算可观测窗口与侧摆角 → 排定成像时序与曝光参数');
+  else if (p < .84) sub('自执行', p<.66 ? '姿态预置 → 对地指向机动 → 精指向稳定'
+                                        : '按条带推扫成像 → 图像压缩存储并打标签');
+  else              sub('数据回传','关联最近地面站窗口 → 按优先级下传图像');
+
+  camera.position.copy(camPos); camera.lookAt(camLook);
+}
+
+/* ---------- 场景 4：图像回传（垂直数据流 · 进度累积） ---------- */
+const GS_LAT = 32.0, GS_LON = -110.0;    // 地面站（示意）
+function driveDownlink(p, t, dt){
+  /* 地球缓慢自转；地面站挂在 earthGrp 下，随之移动 */
+  earthGrp.rotation.y += dt*0.028;
+  const yawNow = earthGrp.rotation.y;
+  const gsDirLocal = llToVec(GS_LAT, GS_LON, 1);
+  const gsDirWorld = gsDirLocal.clone().applyAxisAngle(V(0,1,0), yawNow);
+  const gsWorld    = gsDirWorld.clone().multiplyScalar(R_EARTH);
+  stationGrp.position.copy(gsDirLocal.clone().multiplyScalar(R_EARTH));
+  stationGrp.lookAt(gsDirWorld.clone().multiplyScalar(R_EARTH*3));   // 天线朝外（世界坐标）
+  stationGrp.visible = true;
+
+  /* 卫星过境（从地面站上方掠过） */
+  const ang = 0 + 30*p;
+  const gsDir = gsWorld.clone().normalize();
+  const up = gsDir.clone().multiplyScalar(ORBIT_R);
+  const perp = new THREE.Vector3(0,1,0).cross(gsDir).normalize();
+  const sp = up.clone().addScaledVector(perp, 60*Math.sin(ang*Math.PI/180))
+                        .addScaledVector(gsDir, 26*Math.cos(ang*Math.PI/180));
+  satellite.position.copy(sp);
+  /* 数传天线（-Y 方向）对准地面站 */
+  satellite.lookAt(gsWorld.clone());
+
+  /* 链路光束 */
+  const linked = p > .50;
+  linkBeam.visible = linked;
+  if (linked){
+    const mid = sp.clone().add(gsWorld).multiplyScalar(.5);
+    const len = sp.distanceTo(gsWorld);
+    linkBeam.position.copy(mid);
+    linkBeam.scale.set(1, len, 1);
+    linkBeam.quaternion.setFromUnitVectors(V(0,1,0), gsWorld.clone().sub(sp).normalize());
+    linkBeam.material.opacity = .16 + .2*(0.5+0.5*Math.sin(t*7));
+  }
+
+  /* 数据包：从卫星流向地面站 */
+  const flow = linked;
+  packets.forEach((pk, i) => {
+    if (!flow){ pk.mesh.visible = false; return; }
+    pk.t += dt*pk.spd*.62;
+    if (pk.t > 1) pk.t -= 1;
+    pk.mesh.visible = pk.t > .04;
+    const q = pk.t;
+    const p3 = sp.clone().lerp(gsWorld, q);
+    /* 轻微弧线，避免完全直线 */
+    const mid = sp.clone().add(gsWorld).multiplyScalar(.5)
+                  .addScaledVector(perp, 26*Math.sin(Math.PI*q));
+    p3.lerp(mid, .30*Math.sin(Math.PI*q));
+    pk.mesh.position.copy(p3);
+    pk.mesh.material.opacity = .95*(1-Math.pow(q,3));
+    pk.mesh.material.color.setHex(q < .55 ? 0xffd166 : 0x57d6ff);
+  });
+
+  /* 地面站信号脉冲环 */
+  sigRings.forEach((ring, i) => {
+    if (!linked){ ring.visible = false; return; }
+    ring.visible = true;
+    const q = ((t*0.55 + ring.userData.ph) % 1);
+    ring.position.copy(gsWorld.clone().multiplyScalar(1.01));
+    ring.quaternion.setFromUnitVectors(V(0,0,1), gsWorld.clone().normalize());
+    ring.scale.setScalar(4 + q*46);
+    ring.material.opacity = .62*(1-q);
+  });
+
+  /* 镜头：中景缓慢横移 + 缓慢推近（保持卫星与地面站都完整入画） */
+  const camPos = V(), camLook = V();
+  const k = seg(p, 0, 1, 'inOutSine');
+  const c0 = gsWorld.clone().multiplyScalar(3.1).add(V(150, 170, 190));
+  const c1 = gsWorld.clone().multiplyScalar(2.75).add(V(60, 235, 110));
+  lerpV3(c0, c1, k, camPos);
+  lerpV3(gsWorld.clone().lerp(satellite.position,.5), satellite.position.clone().lerp(gsWorld,.42), k, camLook);
+
+  /* HUD */
+  const rate = linked ? (p > .9 ? '96 Mbps' : '120 Mbps') : '—';
+  const done = clamp((p-.50)/.42, 0, 1);
+  hud('A', '下行速率', rate, linked?'X 波段 · 链路良好':'等待过境建链');
+  hud('B', '下传进度', Math.round(done*100)+'%', linked?('已传 '+Math.round(done*2.4*10)/10+' / 2.4 GB'):'待建链');
+  hudBTone(linked ? 'green' : '');
+  reticle(false); warn(false);
+  dlProgress(done, rate);
+
+  if (p < .18)      sub('数据就绪','图像压缩打包 → 附加辅助数据（成像时刻 / 姿态 / 曝光参数）→ 存入星上存储器');
+  else if (p < .38) sub('自感知','监测存储余量与待传队列 · 预报下一地面站可见窗口 · 监测链路状态');
+  else if (p < .56) sub('自决策','制定下传计划（按优先级排序）· 选择下行速率与调制方式');
+  else if (p < .86) sub('自执行', p<.62 ? '姿态调整使数传天线对准地面站 → 建立测控 / 数传链路'
+                                        : '按优先级下传并校验重传 → 释放存储空间');
+  else              sub('地面接收','地面站接收解调 · 数据校核 · 分发给用户');
+
+  camera.position.copy(camPos); camera.lookAt(camLook);
+}
+
+/* =========================================================================
+   HUD / 任务栏 更新
+   ========================================================================= */
+const $ = id => document.getElementById(id);
+function sub(ph, tx){ $('subPh').textContent = ph; $('subTx').textContent = tx; }
+function reticle(on){ $('hudReticle').classList.toggle('on', !!on); }
+function warn(on, txt){
+  const el = $('warnBox');
+  if (txt) el.textContent = txt;
+  el.classList.toggle('on', !!on);
+}
+function hud(which, lbl, val, row2){
+  const box = $('hud'+which);
+  box.style.display = 'block';
+  $('hud'+which+'_l').textContent = lbl;
+  $('hud'+which+'_v').textContent = val;
+  $('hud'+which+'_r').textContent = row2 || '';
+}
+function hudTone(t){ $('hudA_v').className = 'num' + (t?' '+t:''); }
+function hudBTone(t){ $('hudB_v').className = 'num' + (t?' '+t:''); }
+
+/* 任务栏 */
+let panelScene = -1;
+function buildPanel(sc){
+  if (panelScene === sc.id) return;
+  panelScene = sc.id;
+  $('pTitle').textContent = sc.name;
+  $('pSub').textContent   = sc.sub;
+  $('pCap').textContent   = sc.cap;
+  const body = $('pBody');
+  body.innerHTML = '';
+  if (sc.id === 4){
+    body.insertAdjacentHTML('beforeend',
+      '<div class="dlbar"><div class="hd"><span>数传下传进度</span><b id="dlTxt">0%</b></div>'+
+      '<div class="tr"><i id="dlBar2"></i></div></div>');
+  }
+  sc.phases.forEach((ph, i) => {
+    const div = document.createElement('div');
+    div.className = 'phase'; div.dataset.i = i;
+    div.innerHTML = '<div class="ph"><span>'+ph.k+'</span><span class="badge">待执行</span></div>'+
+      '<ul>'+ph.items.map(x=>'<li>'+x+'</li>').join('')+'</ul>';
+    body.appendChild(div);
+  });
+}
+function dlProgress(v, rate){
+  const b = $('dlBar2'); if (!b) return;
+  b.style.width = (v*100).toFixed(1)+'%';
+  $('dlTxt').textContent = Math.round(v*100)+'%' + (rate && rate!=='—' ? ' · '+rate : '');
+}
+function updatePanel(sc, p){
+  const nodes = document.querySelectorAll('.phase');
+  sc.phases.forEach((ph, i) => {
+    const el = nodes[i]; if (!el) return;
+    const nextAt = i+1 < sc.phases.length ? sc.phases[i+1].at : 1.0;
+    const started = p >= ph.at;
+    const finished = p >= nextAt;
+    el.classList.toggle('active', started && !finished);
+    el.classList.toggle('done', finished);
+    el.querySelector('.badge').textContent = finished ? '已完成' : (started ? '进行中' : '待执行');
+    const lis = el.querySelectorAll('li');
+    const span = Math.max(nextAt - ph.at, 1e-6);
+    lis.forEach((li, j) => {
+      const at = ph.at + span*(j+1)/(lis.length+1);
+      li.classList.toggle('on', p >= at);
+      li.classList.toggle('act', p >= ph.at && p < at && j === Math.max(0,Math.min(lis.length-1, Math.floor((p-ph.at)/span*lis.length)-1)));
+    });
+  });
+}
+
+/* =========================================================================
+   主循环与场景调度
+   ========================================================================= */
+let cur = 1, prog = 0, playing = true, speed = 1, lastT = performance.now();
+
+function setScene(n, pushUrl){
+  n = clamp(parseInt(n,10)||1, 1, SCENES.length);
+  cur = n;
+  prog = 0;
+  hideAll();
+  const sc = SCENES[cur-1];
+  buildPanel(sc);
+  $('hbK').textContent = 'SCENE 0'+sc.id;
+  $('hbV').textContent = sc.name;
+  $('hbS').textContent = sc.sub + ' · ' + sc.motion;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', +b.dataset.n === cur));
+  $('hudA').style.display='none'; $('hudB').style.display='none';
+  if (pushUrl !== false) syncUrl();
+}
+function syncUrl(){
+  const u = new URL(location.href);
+  u.searchParams.set('scene', cur);
+  u.searchParams.delete('t');
+  history.replaceState(null,'',u.toString());
+  $('urlinfo').innerHTML = 'URL: <b>?scene=' + cur + '</b>　（改数字即切换）';
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  const now = performance.now();
+  let dt = Math.min((now - lastT)/1000, .05); lastT = now;
+  if (!ready) return;
+
+  if (playing){
+    prog += dt*speed/SCENES[cur-1].dur;
+    if (prog >= 1){ prog = 0; }        // 循环播放
+  }
+  const sc = SCENES[cur-1];
+  const t = now/1000;
+
+  /* 每帧先复位一次性元素，再由场景按需打开（避免场景间残留） */
+  if (satFlame) satFlame.visible = false;
+
+  /* 场景驱动（位置 / 朝向 / 镜头 / HUD 均由各场景自行设置） */
+  sc.drive(prog, t, dt);
+
+  updatePanel(sc, prog);
+  $('prog').style.width = (prog*100).toFixed(2)+'%';
+  renderer.render(scene, camera);
+}
+
+/* =========================================================================
+   启动
+   ========================================================================= */
+let ready = false;
+function boot(){
+  /* 从 URL 解析场景：
+     · ?scene=N  直接指定（1~4），文档推荐用法
+     · ?t=N      通用切换值，同样直观映射：1→场景1、2→场景2 …… 5→场景1（循环）
+     只要改动这两个参数中的任意一个，就会切到对应场景。 */
+  const q = new URLSearchParams(location.search);
+  let n = 1;
+  if (q.has('scene'))      n = parseInt(q.get('scene'),10) || 1;
+  else if (q.has('t'))     n = ((Math.abs(parseInt(q.get('t'),10) || 1) - 1) % SCENES.length) + 1;
+
+  initThree();
+  satellite = satGrp;
+  ready = true;
+
+  /* 场景切换按钮 */
+  const tabs = $('tabs');
+  SCENES.forEach(sc=>{
+    const b = document.createElement('button');
+    b.className = 'tab'; b.dataset.n = sc.id;
+    b.innerHTML = '<span class="n">0'+sc.id+'</span>'+sc.name;
+    b.onclick = ()=> setScene(sc.id);
+    tabs.appendChild(b);
+  });
+
+  setScene(n, false);
+  if (q.has('scene')) syncUrl();
+  else $('urlinfo').innerHTML = 'URL: <b>?scene=' + cur + '</b>　（改数字即切换）';
+
+  $('loading').classList.add('hide');
+  animate();
+}
+
+/* 交互 */
+$('btnPlay').onclick = function(){
+  playing = !playing;
+  this.textContent = playing ? '⏸ 暂停' : '▶ 播放';
+  this.classList.toggle('on', playing);
+};
+$('btnSpeed').onclick = function(){
+  const arr = [1, 0.5, 1.5, 2];
+  const i = (arr.indexOf(speed)+1) % arr.length;
+  speed = arr[i];
+  this.textContent = speed.toFixed(1)+'×';
+};
+addEventListener('keydown', e=>{
+  if (e.code === 'Space'){ e.preventDefault(); $('btnPlay').click(); }
+  if (e.key >= '1' && e.key <= String(SCENES.length)) setScene(+e.key);
+});
+
+/* 字体与贴图就绪后再启动 */
+(function waitAssets(){
+  const bar = $('ldBar');
+  let p = 0;
+  const iv = setInterval(()=>{ p = Math.min(p+9, 92); bar.style.width = p+'%'; }, 55);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{});
+  const start = ()=>{
+    clearInterval(iv); bar.style.width = '100%';
+    setTimeout(()=>{ try{ boot(); }catch(err){ console.error(err); document.querySelector('#loading .tt').textContent = '启动失败：'+err.message; } }, 120);
+  };
+  if (document.readyState === 'complete') setTimeout(start, 260);
+  else addEventListener('load', ()=> setTimeout(start, 260));
+})();
+
+/* 供外部/调试控制 */
+window.DEMO = {
+  setScene,
+  get scene(){ return cur; },
+  setProgress(v){ prog = clamp(v,0,1); playing = false; $('btnPlay').textContent='▶ 播放'; $('btnPlay').classList.remove('on'); },
+  play(){ playing = true; },
+  pause(){ playing = false; },
+  get progress(){ return prog; },
+};
+</script>
+</body>
+</html>
