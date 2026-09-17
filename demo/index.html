@@ -61,6 +61,21 @@
   .scenebadge .v{font-size:15px;color:#cfe3ff;font-weight:700;margin-top:2px}
   .scenebadge .s{font-size:11px;color:var(--dim);margin-top:2px}
 
+  /* ---- 顶部居中横幅：当前环节（字号加大，便于远看） ---- */
+  .banner{
+    position:absolute;left:50%;top:14px;transform:translateX(-50%);
+    background:linear-gradient(180deg,rgba(22,40,70,.94),rgba(11,21,40,.94));
+    border:1px solid rgba(90,140,220,.62);border-radius:9px;
+    padding:9px 30px;backdrop-filter:blur(9px);
+    box-shadow:0 8px 26px rgba(0,0,0,.52), 0 0 0 1px rgba(120,180,255,.10) inset;
+    display:flex;align-items:center;gap:11px;white-space:nowrap;
+  }
+  .banner .step{
+    font-family:Consolas,monospace;font-size:13px;color:var(--cyan);
+    border:1px solid rgba(87,214,255,.45);border-radius:5px;padding:1px 7px;
+  }
+  .banner .tx{font-size:20px;font-weight:700;color:#eaf2ff;letter-spacing:3px}
+
   .subtitle{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);
     max-width:min(780px,88%);text-align:center;
     background:rgba(8,14,26,.82);border:1px solid var(--line2);border-radius:8px;
@@ -94,6 +109,11 @@
     letter-spacing:1.5px;opacity:0;transition:opacity .2s;font-family:Consolas,monospace;}
   .warn.on{opacity:1;animation:blink .7s steps(2,end) infinite}
   @keyframes blink{0%{opacity:1}50%{opacity:.28}100%{opacity:1}}
+  @keyframes bannerPop{
+    0%{opacity:.2;transform:translateX(-50%) translateY(-10px) scale(.94)}
+    60%{opacity:1;transform:translateX(-50%) translateY(1px) scale(1.02)}
+    100%{opacity:1;transform:translateX(-50%)}
+  }
 
   /* ---- 载荷观测窗口（弹出） ---- */
   #payloadWin{
@@ -105,6 +125,8 @@
     backdrop-filter:blur(8px);
   }
   #payloadWin.on{opacity:1;transform:none}
+  /* 小窗模式：贴近卫星一侧，用于"识别到目标"的轻量展示（不喧宾夺主） */
+  #payloadWin.small{width:214px;right:auto;bottom:auto} 
   #payloadWin .hd{display:flex;align-items:center;gap:7px;padding:7px 10px;
     background:rgba(20,32,54,.9);border-bottom:1px solid rgba(60,90,140,.4);font-size:11.5px}
   #payloadWin .hd .dot{width:7px;height:7px;border-radius:50%;background:var(--green);
@@ -120,9 +142,9 @@
   #panel{flex:1;min-width:340px;max-width:440px;background:var(--panel);
     border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
   .phead{flex:0 0 auto;padding:12px 15px;border-bottom:1px solid var(--line);background:#0d1729}
-  .phead .t{font-size:14px;color:#bfe0ff;font-weight:700}
-  .phead .st{font-size:11.5px;color:var(--dim);margin-top:3px}
-  .phead .cap{display:inline-block;margin-top:7px;font-size:10.5px;padding:2px 8px;border-radius:10px;
+  .phead .t{font-size:16px;color:#bfe0ff;font-weight:700}
+  .phead .st{font-size:12.5px;color:var(--dim);margin-top:3px}
+  .phead .cap{display:inline-block;margin-top:7px;font-size:11.5px;padding:3px 10px;border-radius:10px;
     background:#16233c;border:1px solid var(--line2);color:#8fa3c2;font-family:Consolas,monospace}
   .pbody{flex:1;overflow-y:auto;padding:12px 15px 24px;scroll-behavior:smooth}
   .pbody::-webkit-scrollbar{width:7px}
@@ -134,26 +156,27 @@
     60%{opacity:1;transform:translateY(-2px) scale(1.012)}
     100%{opacity:1;transform:none}
   }
-  .phase{position:relative;margin-bottom:11px;border:1px solid var(--line);border-radius:8px;
+  .phase{position:relative;margin-bottom:12px;border:1px solid var(--line);border-radius:9px;
     background:#0d1526;overflow:hidden;animation:phasePop .46s cubic-bezier(.22,.9,.32,1.1) both;}
   .phase::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
     background:var(--amber);transition:.35s}
   .phase.done::before{background:var(--green)}
-  .phase .ph{display:flex;align-items:center;gap:8px;padding:8px 11px 6px;
-    font-size:12.5px;font-weight:700;color:#9ecbff}
+  .phase .ph{display:flex;align-items:center;gap:9px;padding:10px 13px 7px;
+    font-size:14.5px;font-weight:700;color:#9ecbff}
   .phase.done .ph{color:#8fd6b0}
-  .phase .badge{margin-left:auto;font-size:10px;font-family:Consolas,monospace;
-    color:var(--cyan);border:1px solid #2b4a6b;border-radius:9px;padding:1px 7px}
+  .phase .badge{margin-left:auto;font-size:11.5px;font-family:Consolas,monospace;
+    color:var(--cyan);border:1px solid #2b4a6b;border-radius:10px;padding:2px 9px}
   .phase.done .badge{color:var(--green);border-color:#2c5a44}
-  .phase ul{list-style:none;padding:0 11px 9px}
+  .phase ul{list-style:none;padding:0 13px 11px}
   /* 子项也依次浮现 → 强化"正在自主决策"的过程感 */
-  .phase li{font-size:12px;color:#8ea2bd;line-height:1.62;padding-left:15px;position:relative;
+  .phase li{font-size:13.5px;color:#94a8c2;line-height:1.72;padding-left:17px;position:relative;
     opacity:0;transform:translateX(-7px);
     transition:opacity .34s ease, transform .34s ease, color .3s}
   .phase li.show{opacity:1;transform:none}
-  .phase li::before{content:"";position:absolute;left:2px;top:8px;width:5px;height:5px;
+  .phase li::before{content:"";position:absolute;left:3px;top:10px;width:6px;height:6px;
     border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
   .phase.active li::before{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+  .phase li .svc{color:#7fb3ff;font-family:Consolas,monospace;font-size:12.5px}
 
   .dlbar{margin:2px 0 12px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#0d1526}
   .dlbar .hd{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:6px}
@@ -195,6 +218,12 @@
         <div class="k" id="hbK">SCENE 01</div>
         <div class="v" id="hbV">拍摄月亮</div>
         <div class="s" id="hbS">—</div>
+      </div>
+
+      <!-- 顶部居中横幅：当前任务环节 -->
+      <div class="banner" id="banner">
+        <span class="step" id="banStep">01</span>
+        <span class="tx" id="banTx">指令接收</span>
       </div>
 
       <div class="hudbox" id="hudA" style="right:16px;top:14px;display:none">
@@ -334,22 +363,23 @@ const SCENES = [
     cap:'L2 星上辅助', dur:26, motion:'平滑环绕 · 大范围缓动',
     phases:[
       { k:'指令接收', at:.00, items:['地面站上注任务：拍摄月球'] },
-      { k:'自感知',   at:.15, items:['取自身轨道位置与速度','读当前姿态与角速度','查月球星历解算方位','判断地球遮挡与太阳夹角'] },
+      { k:'自感知',   at:.15, items:['<span class="svc">GPS</span> 定轨：取轨道位置与速度','<span class="svc">星敏+陀螺</span>：读当前姿态与角速度','<span class="svc">太敏</span>：太阳矢量与光照条件','查月球星历解算方位 → 判断地球遮挡'] },
       { k:'自决策',   at:.33, items:['解算目标指向姿态','规划最短角距机动路径','估算机动耗时与过曝风险','排定成像时刻与曝光参数'] },
-      { k:'自执行',   at:.50, items:['反作用飞轮输出力矩机动','星敏精定姿（指向误差 < 0.1°）','相机加电自动测光','多帧成像并压缩存储'] },
+      { k:'自执行',   at:.50, items:['<span class="svc">反作用飞轮</span> 输出力矩机动','<span class="svc">星敏</span> 精定姿（指向误差 < 0.1°）','相机加电自动测光','多帧成像并压缩存储'] },
       { k:'数据回传', at:.76, items:['等待地面站可见窗口（本土站）','下传月球图像与遥测'] },
     ],
     drive: driveMoon
   },
   {
-    id:2, name:'途遇废弃卫星 · 自主规避', sub:'识别 → 计算 → 变轨（顺行加速）→ 恢复',
+    id:2, name:'赴观测途中 · 遇废弃卫星自主规避', sub:'接新指令 → 途中识别 → 计算 → 变轨规避 → 恢复',
     cap:'L3 星上自主（前沿）', dur:26, motion:'急促变焦 · 轨迹急偏 · 告警脉冲',
     phases:[
-      { k:'异常感知', at:.00, items:['星载探测发现接近目标','多帧跟踪提取方位与运动','判别为报废卫星 / 碎片'] },
-      { k:'自感知',   at:.18, items:['自身精密定轨','外推双方轨迹','计算最近接近时刻与最小距离','评估碰撞概率 Pc'] },
-      { k:'自决策',   at:.36, items:['Pc 超安全阈值 → 判定需规避','选择机动策略：轨道抬升','计算最小 Δv 与点火时刻','校验推进剂余量'] },
-      { k:'自执行',   at:.50, items:['姿态机动使推力轴沿速度方向（顺行）','推力器点火施加 Δv','轨道抬升，双方安全错开','重新定轨确认风险解除'] },
-      { k:'轨道恢复', at:.78, items:['施加反向小 Δv','返回标称轨道','生成规避报告并下传'] },
+      { k:'指令接收', at:.00, items:['接到新任务：前往美国上空观测标记物','<span class="svc">飞轮</span> 调整姿态转入转移轨道'] },
+      { k:'异常感知', at:.14, items:['<span class="svc">对天光学载荷</span> 发现接近目标','多帧跟踪提取方位与运动','判别为报废卫星（不受控目标）'] },
+      { k:'自感知',   at:.30, items:['<span class="svc">GPS</span> 精密定轨（自身位置速度）','外推双方轨迹 → 判断为交叉逼近','计算最近接近时刻 TCA 与最小距离','评估碰撞概率 Pc'] },
+      { k:'自决策',   at:.44, items:['Pc 超安全阈值 → 判定需规避','选择机动策略：轨道抬升','计算最小 Δv 与点火时刻','校验推进剂余量'] },
+      { k:'自执行',   at:.56, items:['<span class="svc">飞轮</span> 使推力轴沿速度方向（顺行）','<span class="svc">推力器</span> 点火施加 Δv','卫星脱离原轨道抬升，与碎片错开','<span class="svc">GPS</span> 重新定轨确认风险解除'] },
+      { k:'轨道恢复', at:.82, items:['施加反向小 Δv','返回标称轨道','继续飞往观测目标'] },
     ],
     drive: driveAvoid
   },
@@ -358,9 +388,9 @@ const SCENES = [
     cap:'L2 星上辅助', dur:24, motion:'高空俯冲 · 地球自转定位 · 地面横扫',
     phases:[
       { k:'指令接收', at:.00, items:['上注任务：拍摄美国上空标记物（含目标经纬度）'] },
-      { k:'自感知',   at:.15, items:['取轨道位置速度','读当前姿态','解析目标点坐标','读电源与存储余量'] },
+      { k:'自感知',   at:.15, items:['<span class="svc">GPS</span> 取轨道位置速度','<span class="svc">星敏+陀螺</span> 读当前姿态','解析目标点坐标','读电源与存储余量'] },
       { k:'自决策',   at:.33, items:['轨道预报算过境时刻','计算可观测窗口与侧摆角','排定成像时序与曝光参数'] },
-      { k:'自执行',   at:.50, items:['姿态预置 → 对地指向机动','精指向稳定','按条带推扫成像','压缩存储并打标签'] },
+      { k:'自执行',   at:.50, items:['<span class="svc">飞轮</span> 姿态预置 → 对地指向机动','精指向稳定','按条带推扫成像','压缩存储并打标签'] },
       { k:'数据回传', at:.80, items:['记录待传队列','等待返回本土后下传'] },
     ],
     drive: driveGround
@@ -370,7 +400,7 @@ const SCENES = [
     cap:'L2 星上辅助', dur:22, motion:'垂直数据流 · 链路脉冲 · 进度累积',
     phases:[
       { k:'数据就绪', at:.00, items:['图像压缩打包','附加辅助数据（时刻 / 姿态 / 参数）','存入星上固态存储器'] },
-      { k:'自感知',   at:.15, items:['监测存储余量与待传队列','预报本土地面站可见窗口','监测链路状态'] },
+      { k:'自感知',   at:.15, items:['监测存储余量与待传队列','<span class="svc">GPS</span> 预报本土地面站可见窗口','监测链路状态'] },
       { k:'自决策',   at:.33, items:['制定下传计划（优先级排序）','选择下行速率与调制方式'] },
       { k:'自执行',   at:.50, items:['姿态调整使数传天线对准地面站','建立测控 / 数传链路','按优先级下传并校验重传','释放存储空间'] },
       { k:'地面接收', at:.82, items:['地面站接收解调','数据校核并分发给用户'] },
@@ -679,52 +709,60 @@ function stationOrient(){
 function driveMoon(p, t, dt){
   gsGrp.visible = true;
 
-  /* 卫星沿轨道运行（始终在轨道线上） */
-  const a0 = -55, a1 = 25;
+  /* 卫星沿轨道运行（始终在轨道线上）。
+     关键：起始相位取"星下点纬度 = 地面站纬度"，使上行链路沿径向、不穿过地球。 */
+  const aGS = phaseForLat(GS_LAT);            // 地面站过顶时的相位
+  const a0 = aGS, a1 = aGS + 78;
   const ang = lerp(a0, a1, EASE.inOutSine(seg(p,0,1)));
   const sp = orbitPos(ang);
   satellite.position.copy(sp);
-  satellite.lookAt(moonMesh.position);        // 相机视线(+Z)对准月球
+  satellite.lookAt(moonMesh.position);
   setOrbitRadius(ORBIT_R);
 
-  /* 地球自转：先让地面站转向卫星（便于展示上行），后段再转到可见窗口 */
+  /* 地球自转：让地面站正对卫星（沿径向），避免信号线穿地球 */
   const yaw0 = yawAlignSatToGround(a0, GS_LAT, GS_LON);
-  earthGrp.rotation.y = lerp(yaw0, yaw0 + .5, seg(p,0,1,'inOutSine'));
+  earthGrp.rotation.y = lerp(yaw0, yaw0 + .55, seg(p,0,1,'inOutSine'));
   cloudMesh.rotation.y = earthGrp.rotation.y + t*.008;
 
   const camPos = V(), look = V();
-  const earthDir = sp.clone().negate().normalize();          // 卫星→地心
-  const moonDir  = moonMesh.position.clone().sub(sp).normalize();
+  const moonDir = moonMesh.position.clone().sub(sp).normalize();
 
-  /* ---------- 段 1（0~.24）地面站上行指令：全景 + 信号束 ---------- */
+  /* ---------- 段 1（0~.24）地面站上行指令：卫星与地面站同框，链路沿径向 ---------- */
   if (p < .24){
     const k = seg(p, 0, .24, 'inOutCubic');
-    lerpV3(V(120, 300, 830), V(210, 210, 610), k, camPos);
-    lerpV3(V(20, 20, 20), V(20, 20, 20), k, look);
+    /* 机位：从侧上方看，能把地面站(40N)与卫星同时收进画面 */
+    const gsWorld = llToVec(GS_LAT, GS_LON, R_EARTH).applyAxisAngle(V(0,1,0), earthGrp.rotation.y);
+    const mid = gsWorld.clone().lerp(sp, .45);
+    const axis = sp.clone().sub(gsWorld).normalize();
+    let cd = new THREE.Vector3().crossVectors(axis, V(0,1,0)); 
+    if (cd.lengthSq()<1e-4) cd = V(0,0,1);
+    cd.normalize();
+    const dist = lerp(760, 620, k);
+    camPos.copy(mid).addScaledVector(cd, dist*.9).addScaledVector(V(0,1,0), dist*.42);
+    look.copy(mid);
     orbitLine.visible = true;
     reticle(false); warn(false);
+    payload(false);
 
-    /* 信号脉冲环 + 上行光束 */
-    const gsWorld = llToVec(GS_LAT, GS_LON, R_EARTH*1.02).applyAxisAngle(V(0,1,0), earthGrp.rotation.y);
     gsRing.forEach((ring,i)=>{
       ring.visible = true;
       const q = ((t*.5 + ring.userData.ph) % 1);
-      ring.position.copy(gsWorld);
+      ring.position.copy(gsWorld.clone().multiplyScalar(1.02));
       ring.quaternion.setFromUnitVectors(V(0,0,1), gsWorld.clone().normalize());
       ring.scale.setScalar(3 + q*40);
       ring.material.opacity = .7*(1-q);
     });
     gsBeam.visible = true;
-    const mid = gsWorld.clone().add(sp).multiplyScalar(.5);
-    const len = gsWorld.distanceTo(sp);
-    gsBeam.position.copy(mid);
-    gsBeam.scale.set(1, len, 1);
+    const midB = gsWorld.clone().add(sp).multiplyScalar(.5);
+    gsBeam.position.copy(midB);
+    gsBeam.scale.set(1, gsWorld.distanceTo(sp), 1);
     gsBeam.quaternion.setFromUnitVectors(V(0,1,0), sp.clone().sub(gsWorld).normalize());
     gsBeam.material.opacity = .2 + .28*Math.abs(Math.sin(t*4));
 
     hud('A', '任务类型', '对月成像', '来自本土地面站');
     hud('B', '指令状态', p<.12?'指令上注中':'指令已接收', p<.12?'上行链路建立':'开始任务拆解');
     hudTone(''); hudBTone(p<.12?'amber':'green');
+    banner(1,'指令接收');
     sub('指令接收', p<.12 ? '本土地面站上注任务：拍摄月球（上行链路建立）'
                           : '卫星接收任务指令 → 启动自主任务拆解');
   }
@@ -732,47 +770,60 @@ function driveMoon(p, t, dt){
   else if (p < .46){
     const k = seg(p, .24, .46, 'inOutCubic');
     const near = sp.clone().add(V(0,52,138));
-    lerpV3(V(210,210,610), near, k, camPos);
-    lerpV3(V(20,20,20), sp, k, look);
+    /* 从段1机位平滑推到卫星近景 */
+    const gsWorld = llToVec(GS_LAT, GS_LON, R_EARTH).applyAxisAngle(V(0,1,0), earthGrp.rotation.y);
+    const mid = gsWorld.clone().lerp(sp, .45);
+    const axis = sp.clone().sub(gsWorld).normalize();
+    let cd = new THREE.Vector3().crossVectors(axis, V(0,1,0));
+    if (cd.lengthSq()<1e-4) cd = V(0,0,1);
+    cd.normalize();
+    const c0 = mid.clone().addScaledVector(cd, 620*.9).addScaledVector(V(0,1,0), 620*.42);
+    lerpV3(c0, near, k, camPos);
+    lerpV3(mid, sp, k, look);
     orbitLine.visible = true;
     reticle(false); warn(false);
     gsBeam.visible = false;
+    payload(p > .38, {
+      mode:'月球定标', det:'识别目标 <b>月球</b>', conf:'0.96',
+      meta:'星敏指向解算中', src:'moon', frames:0, small:true
+    });
     const err = lerp(9.2, .35, seg(p,.30,.46,'outCubic'));
     hud('A', '姿态指向误差', err.toFixed(2)+'°', '目标：月球');
     hud('B', '控制模式', '姿态机动中', '反作用飞轮输出力矩');
     hudTone(err>2?'amber':'green'); hudBTone('');
     sub(p<.34?'自感知':'自决策',
-      p<.34 ? '取轨道位置速度 · 读姿态与角速度 · 查月球星历解算方位 · 判断地球遮挡与太阳夹角'
+      p<.34 ? 'GPS 定轨 · 星敏+陀螺读姿态 · 太敏太阳矢量 · 查月球星历解算方位'
             : '解算目标指向姿态 · 规划最短角距机动路径 · 估算机动耗时与过曝风险 · 排定曝光参数');
   }
-  /* ---------- 段 3（.46~.76）沿视轴推进 → 月球充满视野 → 成像 ---------- */
+  /* ---------- 段 3（.46~.76）保持卫星与月亮同框，相机识别用旁侧小窗展示 ---------- */
   else if (p < .76){
     const k = seg(p, .46, .76, 'inOutSine');
+    /* 机位：退到卫星侧后方，把卫星与月亮一起收进画面（不推近月球） */
     const side = new THREE.Vector3(0,1,0).cross(moonDir).normalize();
     const upv  = moonDir.clone().cross(side).normalize();
-    const dist = moonMesh.position.distanceTo(sp);
-    const adv  = lerp(-dist*0.30, dist*0.80, Math.pow(k,2.0));
-    camPos.copy(sp).addScaledVector(moonDir, adv)
-          .addScaledVector(side, lerp(120,92,k)).addScaledVector(upv, lerp(50,28,k));
-    look.copy(moonMesh.position);
-    orbitLine.visible = p < .56;
-    const lock = p > .56;
-    reticle(lock && !(p>.60 && p<.74));
-    warn(false);
+    camPos.copy(sp)
+          .addScaledVector(moonDir, lerp(-150, -230, k))
+          .addScaledVector(side, lerp(150, 118, k))
+          .addScaledVector(upv, lerp(52, 40, k));
+    look.copy(sp).lerp(moonMesh.position, .42);          // 视线在卫星与月球之间
+    orbitLine.visible = true;
+    reticle(false); warn(false);
     const err = lerp(.35,.05, seg(p,.46,.76,'outQuint'));
-    hud('A', '指向误差', err.toFixed(2)+'°', lock?'已锁定月球 ✓':'星敏精定姿');
+    hud('A', '指向误差', err.toFixed(2)+'°', p>.58?'已稳定指向月球 ✓':'星敏精定姿');
     hudTone('green');
-    hud('B', '相机状态', p<.60?'自动测光':(p<.74?'成像中':'成像完成'),
-      p<.60?'月球亮度高 · 短曝光防过曝':(p<.74?'多帧成像':'图像已压缩存储'));
-    hudBTone(p<.60?'amber':'green');
-    sub('自执行', p<.60 ? '星敏精定姿（指向误差优于 0.1°）→ 相机加电自动测光'
+    hud('B', '相机状态', p<.58?'自动测光':(p<.72?'成像中':'成像完成'),
+      p<.58?'月球亮度高 · 短曝光防过曝':(p<.72?'多帧成像':'图像已压缩存储'));
+    hudBTone(p<.58?'amber':'green');
+    banner(4,'自执行 · 成像');
+    sub('自执行', p<.58 ? '星敏精定姿（指向误差优于 0.1°）→ 相机加电自动测光'
                         : '多帧成像 → 图像压缩存储（含成像时刻 / 姿态 / 曝光参数）');
 
-    /* 载荷观测窗口：成像段弹出，显示识别框 + 拍摄画面 */
-    const inImg = p > .60 && p < .745;
+    /* 载荷观测窗口：成像段弹出小窗，旁边显示"识别到的月亮" */
+    const inImg = p > .56 && p < .74;
     payload(inImg, {
-      mode:'月球定标', det:'目标锁定 <b>月球</b>', conf:(0.93 + .05*Math.min(1,k)).toFixed(2),
-      meta:'曝光 1/2000s · 增益 2dB', src:'moon', frames: Math.round(seg(p,.66,.745,'outCubic')*24)
+      mode:'月球定标', det:'识别到 <b>月球</b>', conf:(0.93 + .05*Math.min(1,k)).toFixed(2),
+      meta:'曝光 1/2000s · 增益 2dB', src:'moon', small:true,
+      frames: Math.round(seg(p,.62,.74,'outCubic')*24)
     });
   }
   /* ---------- 段 4（.76~1）回传本土地面站 ---------- */
@@ -819,47 +870,66 @@ function driveMoon(p, t, dt){
     hud('B', '数据下传', linked?'链路已建立':'等待本土站窗口',
         linked?('已传 '+(seg(p,.84,1,'outCubic')*1.8).toFixed(1)+' / 1.8 GB'):'地球自转至可见窗口');
     hudTone('green'); hudBTone(linked?'green':'amber');
+    banner(5,'数据回传');
     sub('数据回传', p<.84 ? '等待地面站可见窗口（本土站）→ 建立测控 / 数传链路'
                           : '向【中国大陆地面站】下传月球图像与遥测数据');
   }
 
   moonMesh.rotation.y += dt*.02;
+  payloadFollow(sp);                       // 小窗跟随卫星
   camera.position.copy(camPos); camera.lookAt(look);
 }
 
 /* =========================================================================
    场景 2 · 途遇废弃卫星 · 自主规避
-   变轨物理：顺行加速（推力沿速度方向，喷焰向后）→ 轨道抬升
+   物理要点（依审阅意见修正）:
+   · 碎片沿【自身独立轨迹】稳定飘过，与卫星轨道形成交叉 —— 碎片不受任何控制
+   · 只有【卫星】做规避：从原轨道脱离 → 抬升成弧线 → 再回到标称轨道
+   · 变轨为顺行加速（推力沿速度方向，喷焰向后）
    ========================================================================= */
 function driveAvoid(p, t, dt){
   debrisMesh.visible = true; debrisTrail.line.visible = true; satTrail.line.visible = true;
   orbitLine.visible = true;
 
-  const ang = 20 + 26*p;                       // 沿轨道运行
-  const burn = seg(p, .50, .64, 'outCubic');   // 0→1 变轨进度（半径抬升）
-  const R = ORBIT_R + burn*40;
-  setOrbitRadius(R);                            // 轨道环同步重绘 → 卫星始终在线上
+  /* 卫星沿轨推进（缓入缓出），相位与碎片穿越点对齐 */
+  const ang = 20 + 14*seg(p, 0, 1, 'inOutCubic');
+
+  /* ---- 卫星轨道：脱离 → 抬升弧线 → 回归（半径随时间变化，始终落在"当前轨道"上） ---- */
+  /* 抬起量：0 → 峰值 → 0，形成一条离开原轨又回来的弧线 */
+  const out = seg(p, .42, .62, 'outCubic');          // 脱离原轨道
+  const back= seg(p, .72, .96, 'inOutCubic');        // 回到标称轨道
+  const lift = (out - out*back) * 42;                // 峰值 42，末端归零
+  const R = ORBIT_R + lift;
+  setOrbitRadius(R);                                  // 轨道环跟随重绘
   const sp = orbitPos(ang, R);
   satellite.position.copy(sp);
 
-  /* ---- 姿态：点火段推力轴沿【速度方向】；其余时刻镜头追随碎片 ---- */
   const vDir = orbitVel(ang, R);
-  const firing = p > .50 && p < .66;
+  const firing = p > .46 && p < .64;
 
-  /* 碎片：沿接近轨迹逼近，之后错开 */
-  const appDir = V(-.60, .14, .78).normalize();
-  let gap;
-  if (p < .48)      gap = lerp(12.4, 0.62, seg(p,0,.48,'inQuad'));
-  else if (p < .64) gap = lerp(0.62, 1.8, seg(p,.48,.64,'outCubic'));
-  else              gap = lerp(1.8, 7.4, seg(p,.64,1,'outCubic'));
-  const debPos = sp.clone().addScaledVector(appDir, 40 + gap*8.6).add(V(0, gap*1.2, 0));
+  /* ---- 碎片：沿自身轨迹匀速飘行（完全独立，不受任何控制） ----
+     物理：碎片轨迹与卫星【标称轨道】在 TCA 时刻空间交叉。
+     若卫星不机动 → 两者在该点相遇（碰撞）；
+     卫星实际在 TCA 前完成抬升 → 从交叉点上方安全通过。
+     穿越点取 TCA 时刻的标称轨道位置，保证最小间距正好落在变轨时刻。 */
+  const TCA = .62, SPD = 380;                         // 交会时刻 / 碎片速度
+  const aTca = 20 + 14*seg(TCA, 0, 1, 'inOutCubic');
+  const debCross = orbitPos(aTca, ORBIT_R);           // 穿越点（标称轨道上）
+  const tgDir = orbitPos(aTca + 1).sub(orbitPos(aTca - 1)).normalize();
+  const rdDir = orbitPos(aTca).normalize();
+  const debDir = tgDir.multiplyScalar(0.45).add(rdDir.multiplyScalar(-0.35)).normalize();
+  const debPos = debCross.clone().addScaledVector(debDir, (p - TCA) * SPD);
   debrisMesh.position.copy(debPos);
-  debrisMesh.rotation.y += dt*.5; debrisMesh.rotation.x += dt*.2;
+  debrisMesh.rotation.y += dt*.4; debrisMesh.rotation.x += dt*.15;
 
-  if (firing) satellite.lookAt(sp.clone().addScaledVector(vDir, 120));   // +Z 顺行 → 喷焰向后
-  else        satellite.lookAt(sp.clone().addScaledVector(debPos.clone().sub(sp).normalize(), 120));
+  /* 间距（映射为 km 量级）：逼近 → 变轨 → 拉开 */
+  const gapRaw = sp.distanceTo(debPos);
+  const gap = Math.max(0.35, gapRaw / 12.0);
 
-  /* 喷焰（仅点火段；推力向前，火焰向后） */
+  /* ---- 姿态 ---- */
+  if (firing) satellite.lookAt(sp.clone().addScaledVector(vDir, 140));   // 顺行：喷焰向后
+  else        satellite.lookAt(sp.clone().addScaledVector(debPos.clone().sub(sp).normalize(), 140));
+
   if (satFlame){
     satFlame.visible = firing;
     if (firing){
@@ -872,18 +942,19 @@ function driveAvoid(p, t, dt){
   pushTrail(satTrail, sp.clone());
   pushTrail(debrisTrail, debPos.clone());
 
-  /* 警示环脉动 */
+  /* 警示环脉动（危险度越高闪得越快） */
   const spr = debrisMesh.userData.warnSpr;
+  const risky = gap < 2.4;
   if (spr){
-    const urg = clamp((12.4-gap)/12.4, 0, 1);
+    const urg = clamp(1 - gap/6, 0, 1);
     const camD = camera.position.distanceTo(debPos);
-    const base = clamp(camD*0.115, 26, 96);
+    const base = clamp(camD*0.105, 24, 88);
     const sc = base*(1 + .09*Math.sin(t*(3+urg*9)));
     spr.scale.set(sc,sc,1);
-    spr.material.opacity = .55 + .42*Math.abs(Math.sin(t*(2+urg*7)));
+    spr.material.opacity = .5 + .46*Math.abs(Math.sin(t*(2+urg*7)));
   }
 
-  /* ---- 镜头：自适应机位（卫星与碎片始终同时入画） ---- */
+  /* ---- 镜头：同时框住卫星与碎片 ---- */
   const camPos = V(), look = V();
   const mid = sp.clone().lerp(debPos,.5);
   const axis = debPos.clone().sub(sp); const sep = Math.max(axis.length(),1); axis.normalize();
@@ -891,25 +962,29 @@ function driveAvoid(p, t, dt){
   if (camDir.lengthSq() < 1e-4) camDir = V(0,0,1);
   camDir.normalize();
   const zoomIn = seg(p, 0, .30, 'outQuint');
-  const camDist = lerp(820, Math.max(320, sep*3.0), zoomIn);
+  const camDist = lerp(860, Math.max(330, sep*3.0), zoomIn);
   camPos.copy(mid).addScaledVector(camDir, camDist*.80).addScaledVector(V(0,1,0), camDist*.40);
   look.copy(mid);
-  if (gap < 3.2 && p < .66){
-    const sh = (3.2-gap)/3.2*5.2;
+  if (risky && p < .66){
+    const sh = (2.4-gap)/2.4*5.5;
     camPos.x += (Math.random()-.5)*sh; camPos.y += (Math.random()-.5)*sh; camPos.z += (Math.random()-.5)*sh;
   }
 
   /* ---- HUD ---- */
-  const risky = gap < 2.2;
   hud('A', '最近接近距离', gap.toFixed(2)+' km', '相对速度 11.3 km/s'+(risky?' · ⚠ 危险':''));
-  hudTone(risky?'red':(gap<5?'amber':''));
-  hud('B', '碰撞概率 Pc', p<.48 ? (0.05 + Math.min(1,(1-gap/12.4))*0.9).toFixed(2) : '↓ 已下降',
-      p<.48 ? '超阈值 1e-4 → 判定需规避' : (firing ? 'Δv 施加中（顺行加速）' : '规避后重新评估'));
-  hudBTone(firing?'amber':'');
-  warn(p > .24 && p < .56, '⚠ 碰撞预警 COLLISION WARNING');
+  hudTone(risky?'red':(gap<4?'amber':''));
+  /* 碰撞概率 Pc：规避前随逼近上升；规避后按实际间距回落 */
+  const pcBefore = clamp(0.04 + (1 - Math.min(1, gapRaw/(ORBIT_R*0.52)))*0.93, 0, .99);
+  const pcAfter  = Math.max(1e-5, pcBefore * Math.pow(0.02, seg(p,.62,.90,'outCubic')));
+  const pcShown  = p < .62 ? pcBefore : pcAfter;
+  hud('B', '碰撞概率 Pc', (p < .62 ? pcShown.toFixed(2) : pcShown.toExponential(1)),
+      p < .62 ? '超阈值 1e-4 → 判定需规避'
+              : (firing ? 'Δv 施加中（顺行加速）' : '规避后 Pc 已降至安全门限以下'));
+  hudBTone(firing ? 'amber' : (p >= .62 ? 'green' : 'red'));
+  warn(p > .30 && p < .62, '⚠ 碰撞预警 COLLISION WARNING');
 
   /* 准星跟随碎片 */
-  if (p > .56 && p < .90 && !firing){
+  if (p > .56 && p < .92 && !firing){
     const ndc = debPos.clone().project(camera);
     const st = document.getElementById('stage');
     const sx = (ndc.x*.5+.5)*st.clientWidth, sy = (-ndc.y*.5+.5)*st.clientHeight;
@@ -920,16 +995,16 @@ function driveAvoid(p, t, dt){
       el.style.left = sx+'px'; el.style.top = sy+'px'; el.style.transform='translate(-50%,-50%)';
     }
     $('reticLab').textContent = '目标锁定 · 报废卫星';
-  } else { reticle(false); }
+  } else reticle(false);
 
   /* ---- 字幕 ---- */
-  if (p < .18)      sub('异常感知','星载探测发现接近目标（报废卫星）→ 多帧跟踪 → 判别目标类型与轨道');
-  else if (p < .36) sub('自感知','自身精密定轨 → 外推双方轨迹 → 计算最近接近时刻与最小距离 → 评估碰撞概率');
-  else if (p < .50) sub('自决策','Pc 超安全阈值 → 选择规避策略（轨道抬升）→ 计算最小 Δv 与点火时刻 → 校验推进剂');
-  else if (p < .78) sub('自执行', firing
-        ? '姿态机动使推力轴沿速度方向（顺行）→ 推力器点火施加 Δv（喷焰向后，推力向前）'
-        : 'Δv 已施加 → 轨道抬升，双方安全错开 → 重新定轨确认风险解除');
-  else              sub('轨道恢复','择机施加反向小 Δv → 返回标称轨道 → 生成规避报告并下传地面');
+  if (p < .14)      { banner(1,'指令接收'); sub('指令接收','接到新任务：前往美国上空观测标记物 → 调整姿态转入转移轨道'); }
+  else if (p < .30) { banner(2,'自感知'); sub('自感知','GPS 精密定轨（自身位置速度）→ 外推双方轨迹 → 计算最近接近时刻与最小距离 → 评估碰撞概率'); }
+  else if (p < .44) { banner(3,'自决策'); sub('自决策','Pc 超安全阈值 → 选择规避策略（轨道抬升）→ 计算最小 Δv 与点火时刻 → 校验推进剂余量'); }
+  else if (p < .82) { banner(4,'自执行 · 规避机动'); sub('自执行', firing
+        ? '卫星脱离原轨道：姿态机动使推力轴沿速度方向（顺行）→ 推力器点火施加 Δv（喷焰向后，推力向前）'
+        : '卫星已抬升成弧线，与碎片安全错开 → 重新定轨确认风险解除（碎片沿原轨迹继续飘行）'); }
+  else              { banner(5,'轨道恢复'); sub('轨道恢复','施加反向小 Δv → 卫星从抬升轨道【返回标称轨道】→ 生成规避报告并下传地面'); }
 
   camera.position.copy(camPos); camera.lookAt(look);
 }
@@ -1011,21 +1086,22 @@ function driveGround(p, t, dt){
   hudBTone(p<.52?'amber':'green');
   reticle(false); warn(false);
 
-  /* 载荷观测窗口 */
+  /* 载荷观测窗口：成像段弹出（小窗靠卫星侧，不遮挡主体） */
   const inImg = p > .62 && p < .88;
   payload(inImg, {
-    mode:'对地成像', det:'目标锁定 <b>地面标记物</b>', conf:(0.90 + .06*seg(p,.62,.86,'outCubic')).toFixed(2),
-    meta:'曝光 1/1200s · 分辨率 0.8m', src:'earth',
+    mode:'对地成像', det:'识别到 <b>地面标记物</b>', conf:(0.90 + .06*seg(p,.62,.86,'outCubic')).toFixed(2),
+    meta:'曝光 1/1200s · 分辨率 0.8m', src:'earth', small: (p < .78),
     frames: Math.round(seg(p,.68,.88,'outCubic')*24)
   });
 
-  if (p < .15)      sub('指令接收','地面站上注任务：拍摄美国上空标记物（含目标经纬度）');
-  else if (p < .33) sub('自感知','取轨道位置速度 · 读当前姿态 · 解析目标点坐标 · 读电源与存储余量');
-  else if (p < .50) sub('自决策','轨道预报算过境时刻 → 计算可观测窗口与侧摆角 → 排定成像时序与曝光参数');
-  else if (p < .80) sub('自执行', p<.62 ? '姿态预置 → 对地指向机动 → 精指向稳定'
-                                        : '按条带推扫成像 → 图像压缩存储并打标签');
-  else              sub('数据回传','记录待传队列 → 等待卫星返回本土上空后下传');
+  if (p < .15)      { banner(1,'指令接收'); sub('指令接收','地面站上注任务：拍摄美国上空标记物（含目标经纬度）'); }
+  else if (p < .33) { banner(2,'自感知'); sub('自感知','GPS 取轨道位置速度 · 读当前姿态 · 解析目标点坐标 · 读电源与存储余量'); }
+  else if (p < .50) { banner(3,'自决策'); sub('自决策','轨道预报算过境时刻 → 计算可观测窗口与侧摆角 → 排定成像时序与曝光参数'); }
+  else if (p < .80) { banner(4,'自执行 · 对地成像'); sub('自执行', p<.62 ? '姿态预置 → 对地指向机动 → 精指向稳定'
+                                        : '按条带推扫成像 → 图像压缩存储并打标签'); }
+  else              { banner(5,'数据回传'); sub('数据回传','记录待传队列 → 等待卫星返回本土上空后下传'); }
 
+  payloadFollow(sp);
   camera.position.copy(camPos); camera.lookAt(camLook);
 }
 
@@ -1100,13 +1176,14 @@ function driveDownlink(p, t, dt){
   reticle(false); warn(false);
   dlProgress(done, linked ? (p>.9?'96 Mbps':'120 Mbps') : null);
 
-  if (p < .15)      sub('数据就绪','图像压缩打包 → 附加辅助数据（成像时刻 / 姿态 / 曝光参数）→ 存入星上存储器');
-  else if (p < .33) sub('自感知','监测存储余量与待传队列 · 预报本土地面站可见窗口 · 监测链路状态');
-  else if (p < .46) sub('自决策','制定下传计划（按优先级排序）· 选择下行速率与调制方式');
-  else if (p < .86) sub('自执行', linked ? '卫星已返回本土上空 → 建立测控 / 数传链路 → 按优先级下传并校验重传'
-                                         : '卫星返回本土上空 → 姿态调整使数传天线对准地面站');
-  else              sub('地面接收','地面站接收解调 · 数据校核 · 分发给用户');
+  if (p < .15)      { banner(1,'数据就绪'); sub('数据就绪','图像压缩打包 → 附加辅助数据（成像时刻 / 姿态 / 曝光参数）→ 存入星上存储器'); }
+  else if (p < .33) { banner(2,'自感知'); sub('自感知','监测存储余量与待传队列 · 预报本土地面站可见窗口 · 监测链路状态'); }
+  else if (p < .46) { banner(3,'自决策'); sub('自决策','制定下传计划（按优先级排序）· 选择下行速率与调制方式'); }
+  else if (p < .86) { banner(4,'自执行 · 下行数传'); sub('自执行', linked ? '卫星已返回本土上空 → 建立测控 / 数传链路 → 按优先级下传并校验重传'
+                                         : '卫星返回本土上空 → 姿态调整使数传天线对准地面站'); }
+  else              { banner(5,'地面接收'); sub('地面接收','地面站接收解调 · 数据校核 · 分发给用户'); }
 
+  payloadFollow(sp);
   camera.position.copy(camPos); camera.lookAt(camLook);
 }
 
@@ -1132,6 +1209,17 @@ function flowPackets(from, to, dt, t){
    ========================================================================= */
 const $ = id => document.getElementById(id);
 function sub(ph, tx){ $('subPh').textContent = ph; $('subTx').textContent = tx; }
+/* 顶部居中横幅：显示当前任务环节（随阶段切换） */
+let banLast = '';
+function banner(stepNo, text){
+  if (text === banLast) return;
+  banLast = text;
+  $('banStep').textContent = String(stepNo).padStart(2,'0');
+  $('banTx').textContent = text;
+  const el = $('banner');
+  el.style.animation = 'none'; void el.offsetWidth;
+  el.style.animation = 'bannerPop .40s cubic-bezier(.2,.9,.3,1.2)';
+}
 function reticle(on){ $('hudReticle').classList.toggle('on', !!on); }
 function warn(on, txt){ const el=$('warnBox'); if(txt) el.textContent=txt; el.classList.toggle('on', !!on); }
 function hud(which, lbl, val, row2){
@@ -1144,19 +1232,37 @@ function hudBTone(t){ $('hudB_v').className = 'num'+(t?' '+t:''); }
 
 /* ---- 载荷观测窗口 ---- */
 const pwCv = () => $('pwCanvas');
-let pwState = null;
 function payload(on, info){
   const el = $('payloadWin');
-  if (!on){ el.classList.remove('on'); pwState=null; return; }
+  if (!on){ el.classList.remove('on'); return; }
   el.classList.add('on');
+  el.classList.toggle('small', !!info.small);
   $('pwMode').textContent = info.mode;
   $('pwDet').innerHTML = info.det;
   $('pwConf').textContent = info.conf;
   $('pwMeta').textContent = info.meta;
   drawPayload(info);
 }
+/* 小窗跟随卫星（屏幕坐标），避免遮挡主体 */
+function payloadFollow(anchorWorld){
+  const el = $('payloadWin');
+  if (!el.classList.contains('on') || !el.classList.contains('small')) return;
+  const st = document.getElementById('stage');
+  const ndc = anchorWorld.clone().project(camera);
+  if (ndc.z > 1){ el.style.opacity = 0; return; }
+  el.style.opacity = 1;
+  let sx = (ndc.x*.5+.5)*st.clientWidth + 62;
+  let sy = (-ndc.y*.5+.5)*st.clientHeight - 96;
+  const W = el.offsetWidth || 214, H = el.offsetHeight || 190;
+  sx = clamp(sx, 12, st.clientWidth - W - 12);
+  sy = clamp(sy, 76, st.clientHeight - H - 12);
+  el.style.left = sx+'px'; el.style.top = sy+'px'; el.style.right = 'auto'; el.style.bottom = 'auto';
+}
 function drawPayload(info){
   const cv = pwCv(), c = cv.getContext('2d');
+  /* 小窗模式用较小画布，保持清晰不模糊 */
+  const want = info.small ? [380, 280] : [580, 420];
+  if (cv.width !== want[0]) { cv.width = want[0]; cv.height = want[1]; }
   const W = cv.width, H = cv.height;
   c.fillStyle = '#04070d'; c.fillRect(0,0,W,H);
 
