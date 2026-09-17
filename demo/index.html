@@ -346,8 +346,8 @@ const DEG = Math.PI/180;
 const R_EARTH  = 100;
 const ORBIT_R  = 250;
 const ORBIT_INC = 48*DEG;          // 轨道倾角：使星下点纬度可达 ±48°，覆盖目标纬度
-const MOON_R   = 75;
-const MOON_POS = V(315, 117, -780);  // 月球置于画面【右侧】（原版在左，构图失衡）
+const MOON_R   = 62;
+const MOON_POS = V(430, 120, -700);  // 月球置于画面【右侧】（已校验全程不被地球遮挡）
 const SUN_DIR  = V(0.86, 0.30, 0.42).normalize();
 
 /* 地面站（中国大陆 · 北京，示意） */
@@ -512,7 +512,9 @@ function initThree(){
   moonMesh.position.copy(MOON_POS);
   scene.add(moonMesh);
 
-  satellite = buildSatellite(); scene.add(satellite);
+  satellite = buildSatellite();
+  satellite.scale.setScalar(2.3);   // 远景构图中保持可辨识
+  scene.add(satellite);
   satGrp = satellite;
 
   orbitLine = buildOrbitLine(); scene.add(orbitLine);
@@ -746,44 +748,63 @@ function stationOrient(){
    场景 1 · 拍摄月亮
    流程：地面站上行指令 → 任务拆解 → 姿态指向 → 成像 → 回传本土
    ========================================================================= */
+/* 姿态辅助：卫星 +Z 为相机视线、-Y 为数传天线
+   —— 观测时用相机对准目标，回传时把天线对准地面站（真实工程做法） */
+function satCameraTo(target){
+  satellite.lookAt(target);
+}
+function satAntennaTo(target){
+  const dir = target.clone().sub(satellite.position).normalize();
+  satellite.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(V(0,-1,0), dir));
+}
+
+/* --- 卫星在轨位置 --- */
 function driveMoon(p, t, dt){
   gsGrp.visible = true;
 
-  /* 卫星沿轨道运行（始终在轨道线上）。
-     关键：起始相位取"星下点纬度 = 地面站纬度"，使上行链路沿径向、不穿过地球。 */
-  const aGS = phaseForLat(GS_LAT);            // 地面站过顶时的相位
-  const a0 = aGS, a1 = aGS + 78;
-  const ang = lerp(a0, a1, EASE.inOutSine(seg(p,0,1)));
-  const sp = orbitPos(ang);
+  /* ============================================================
+     构图原则（依审阅意见）：
+     · 全程【单一机位】—— 地球在左、月球在右、卫星绕地运行，三者同框
+     · 不来回切换视角；卫星始终位于轨道线上
+     · 卫星全程处于中国地面站可见带内（相位 ±14°），保证可上行、可回传
+     · 观测窗口只弹出一次（不再反复开合）
+     ============================================================ */
+  const aGS = phaseForLat(GS_LAT);                     // 星下点过中国站的相位
+  const ang = aGS + lerp(-14, 14, seg(p, 0, 1, 'inOutSine'));
+  const sp  = orbitPos(ang);
   satellite.position.copy(sp);
-  satellite.lookAt(moonMesh.position);
   setOrbitRadius(ORBIT_R);
+  orbitLine.visible = true;
 
-  /* 地球自转：让地面站正对卫星（沿径向），避免信号线穿地球 */
-  const yaw0 = yawAlignSatToGround(a0, GS_LAT, GS_LON);
-  earthGrp.rotation.y = lerp(yaw0, yaw0 + .55, seg(p,0,1,'inOutSine'));
-  cloudMesh.rotation.y = earthGrp.rotation.y + t*.008;
+  /* 地球自转：保持地面站在卫星下方（全程处于可见带内） */
+  const yaw = yawAlignSatToGround(aGS, GS_LAT, GS_LON);
+  earthGrp.rotation.y = yaw;
+  cloudMesh.rotation.y = yaw + t*.008;
+  const gsWorld = llToVec(GS_LAT, GS_LON, R_EARTH).applyAxisAngle(V(0,1,0), yaw);
 
-  const camPos = V(), look = V();
-  const moonDir = moonMesh.position.clone().sub(sp).normalize();
+  /* ---------- 姿态 ---------- */
+  const observing = p > .22 && p < .82;                 // 观测段：相机对准月球
+  const downlink  = p >= .82;                           // 回传段：天线对准地面站
+  if (downlink)      satAntennaTo(gsWorld);
+  else if (observing) satCameraTo(moonMesh.position);
+  else                satCameraTo(moonMesh.position);   // 起始也先朝向月球方向（准备观测）
 
-  /* ---------- 段 1（0~.24）地面站上行指令：卫星与地面站同框，链路沿径向 ---------- */
-  if (p < .24){
-    const k = seg(p, 0, .24, 'inOutCubic');
-    /* 机位：从侧上方看，能把地面站(40N)与卫星同时收进画面 */
-    const gsWorld = llToVec(GS_LAT, GS_LON, R_EARTH).applyAxisAngle(V(0,1,0), earthGrp.rotation.y);
-    const mid = gsWorld.clone().lerp(sp, .45);
-    const axis = sp.clone().sub(gsWorld).normalize();
-    let cd = new THREE.Vector3().crossVectors(axis, V(0,1,0)); 
-    if (cd.lengthSq()<1e-4) cd = V(0,0,1);
-    cd.normalize();
-    const dist = lerp(760, 620, k);
-    camPos.copy(mid).addScaledVector(cd, dist*.9).addScaledVector(V(0,1,0), dist*.42);
-    look.copy(mid);
-    orbitLine.visible = true;
-    reticle(false); warn(false);
-    payload(false);
+  /* ---------- 单一机位：地球（左）— 卫星 — 月球（右）同框 ---------- */
+  const axEM = moonMesh.position.clone().normalize();
+  const mid  = V(0,0,0).lerp(moonMesh.position, .46);
+  let side = new THREE.Vector3().crossVectors(axEM, V(0,1,0));
+  if (side.lengthSq() < 1e-4) side = V(0,0,1);
+  side.normalize();
+  const upv = new THREE.Vector3().crossVectors(side, axEM).normalize();
+  const dist = lerp(960, 900, seg(p, 0, 1, 'inOutSine'));   // 极缓慢推近，不做视角切换
+  const camPos = mid.clone().addScaledVector(side, dist*.80).addScaledVector(upv, dist*.62);
+  const look   = mid.clone();
 
+  reticle(false); warn(false);
+
+  /* ---------- 段 1（0~.22）地面站上行指令 ---------- */
+  if (p < .22){
+    /* 脉冲环 + 上行链路（地面站位于卫星下方 → 链路沿径向，不穿地球） */
     gsRing.forEach((ring,i)=>{
       ring.visible = true;
       const q = ((t*.5 + ring.userData.ph) % 1);
@@ -793,135 +814,107 @@ function driveMoon(p, t, dt){
       ring.material.opacity = .7*(1-q);
     });
     gsBeam.visible = true;
-    const midB = gsWorld.clone().add(sp).multiplyScalar(.5);
-    gsBeam.position.copy(midB);
+    gsBeam.position.copy(gsWorld.clone().add(sp).multiplyScalar(.5));
     gsBeam.scale.set(1, gsWorld.distanceTo(sp), 1);
     gsBeam.quaternion.setFromUnitVectors(V(0,1,0), sp.clone().sub(gsWorld).normalize());
     gsBeam.material.opacity = .2 + .28*Math.abs(Math.sin(t*4));
+    packets.forEach(pk=>pk.mesh.visible=false);
+    linkBeam.visible = false;
+    payload(false);                                   // 此段不弹窗
 
     hud('A', '任务类型', '对月成像', '来自本土地面站');
-    hud('B', '指令状态', p<.12?'指令上注中':'指令已接收', p<.12?'上行链路建立':'开始任务拆解');
-    hudTone(''); hudBTone(p<.12?'amber':'green');
+    hud('B', '指令状态', p<.10?'指令上注中':'指令已接收', p<.10?'上行链路建立':'自主任务拆解开始');
+    hudTone(''); hudBTone(p<.10?'amber':'green');
     banner(1,'指令接收');
-    sub('指令接收', p<.12 ? '本土地面站上注任务：拍摄月球（上行链路建立）'
+    sub('指令接收', p<.10 ? '本土地面站上注任务：拍摄月球（上行链路建立）'
                           : '卫星接收任务指令 → 启动自主任务拆解');
   }
-  /* ---------- 段 2（.24~.46）任务拆解 + 姿态机动 ---------- */
-  else if (p < .46){
-    const k = seg(p, .24, .46, 'inOutCubic');
-    const near = sp.clone().add(V(0,52,138));
-    /* 从段1机位平滑推到卫星近景 */
-    const gsWorld = llToVec(GS_LAT, GS_LON, R_EARTH).applyAxisAngle(V(0,1,0), earthGrp.rotation.y);
-    const mid = gsWorld.clone().lerp(sp, .45);
-    const axis = sp.clone().sub(gsWorld).normalize();
-    let cd = new THREE.Vector3().crossVectors(axis, V(0,1,0));
-    if (cd.lengthSq()<1e-4) cd = V(0,0,1);
-    cd.normalize();
-    const c0 = mid.clone().addScaledVector(cd, 620*.9).addScaledVector(V(0,1,0), 620*.42);
-    lerpV3(c0, near, k, camPos);
-    lerpV3(mid, sp, k, look);
-    orbitLine.visible = true;
-    reticle(false); warn(false);
+  /* ---------- 段 2（.22~.82）任务解算 → 姿态指向 → 成像（窗口全程只弹一次） ---------- */
+  else if (p < .82){
+    gsRing.forEach(r=>r.visible=false);
     gsBeam.visible = false;
-    payload(p > .38, {
-      mode:'月球定标', det:'识别目标 <b>月球</b>', conf:'0.96',
-      meta:'星敏指向解算中', src:'moon', frames:0, small:true
-    });
-    const err = lerp(9.2, .35, seg(p,.30,.46,'outCubic'));
-    hud('A', '姿态指向误差', err.toFixed(2)+'°', '目标：月球');
-    hud('B', '控制模式', '姿态机动中', '反作用飞轮输出力矩');
-    hudTone(err>2?'amber':'green'); hudBTone('');
-    sub(p<.34?'自感知':'自决策',
-      p<.34 ? 'GPS 定轨 · 星敏+陀螺读姿态 · 太敏太阳矢量 · 查月球星历解算方位'
-            : '解算目标指向姿态 · 规划最短角距机动路径 · 估算机动耗时与过曝风险 · 排定曝光参数');
-  }
-  /* ---------- 段 3（.46~.76）保持卫星与月亮同框，相机识别用旁侧小窗展示 ---------- */
-  else if (p < .76){
-    const k = seg(p, .46, .76, 'inOutSine');
-    /* 机位：退到卫星侧后方，把卫星与月亮一起收进画面（不推近月球） */
-    const side = new THREE.Vector3(0,1,0).cross(moonDir).normalize();
-    const upv  = moonDir.clone().cross(side).normalize();
-    camPos.copy(sp)
-          .addScaledVector(moonDir, lerp(-150, -230, k))
-          .addScaledVector(side, lerp(150, 118, k))
-          .addScaledVector(upv, lerp(52, 40, k));
-    look.copy(sp).lerp(moonMesh.position, .42);          // 视线在卫星与月球之间
-    orbitLine.visible = true;
-    reticle(false); warn(false);
-    const err = lerp(.35,.05, seg(p,.46,.76,'outQuint'));
-    hud('A', '指向误差', err.toFixed(2)+'°', p>.58?'已稳定指向月球 ✓':'星敏精定姿');
-    hudTone('green');
-    hud('B', '相机状态', p<.58?'自动测光':(p<.72?'成像中':'成像完成'),
-      p<.58?'月球亮度高 · 短曝光防过曝':(p<.72?'多帧成像':'图像已压缩存储'));
-    hudBTone(p<.58?'amber':'green');
-    banner(4,'自执行 · 成像');
-    sub('自执行', p<.58 ? '星敏精定姿（指向误差优于 0.1°）→ 相机加电自动测光'
-                        : '多帧成像 → 图像压缩存储（含成像时刻 / 姿态 / 曝光参数）');
+    linkBeam.visible = false;
+    packets.forEach(pk=>pk.mesh.visible=false);
 
-    /* 载荷观测窗口：成像段弹出小窗，旁边显示"识别到的月亮" */
-    const inImg = p > .56 && p < .74;
-    payload(inImg, {
-      mode:'月球定标', det:'识别到 <b>月球</b>', conf:(0.93 + .05*Math.min(1,k)).toFixed(2),
-      meta:'曝光 1/2000s · 增益 2dB', src:'moon', small:true,
-      frames: Math.round(seg(p,.62,.74,'outCubic')*24)
+    const slew   = seg(p, .22, .38, 'outCubic');       // 姿态机动
+    const settle = seg(p, .38, .50, 'outQuint');       // 精指向收敛
+    const err    = lerp(9.2, 0.05, settle);
+    const shooting = p > .50;                          // 成像
+    const frames = Math.round(seg(p, .52, .80, 'outCubic') * 24);
+
+    /* 观测窗口：第一次进入成像段时弹出，之后持续显示（不再开合） */
+    payload(p > .42, {
+      mode: '月球定标',
+      det:  shooting ? '识别到 <b>月球</b> · 成像中' : '识别到 <b>月球</b>',
+      conf: (0.93 + .05*seg(p,.42,.80,'outCubic')).toFixed(2),
+      meta: shooting ? '曝光 1/2000s · 增益 2dB · 短曝光防过曝' : '自动测光中 · 月球亮度高',
+      src: 'moon', small: true, frames: frames
     });
+
+    hud('A', '姿态指向误差', err.toFixed(2)+'°', slew<1 ? '目标：月球（机动中）' : '已稳定指向月球 ✓');
+    hudTone(err > 2 ? 'amber' : 'green');
+    hud('B', '相机状态', !shooting ? '自动测光' : (p < .80 ? '成像中' : '成像完成'),
+        !shooting ? '月球亮度高 · 短曝光防过曝' : (p < .80 ? ('已成像 ' + frames + ' 帧') : '24 帧已压缩存储'));
+    hudBTone(shooting ? 'green' : 'amber');
+
+    if (p < .38)      { banner(2,'自感知'); sub('自感知','GPS 定轨 · 星敏+陀螺读姿态 · 太敏太阳矢量 · 查月球星历解算方位 → 判断地球遮挡'); }
+    else if (p < .50) { banner(3,'自决策'); sub('自决策','解算目标指向姿态 → 规划最短角距机动路径 → 估算过曝风险 → 排定曝光参数'); }
+    else if (p < .80) { banner(4,'自执行 · 成像'); sub('自执行','反作用飞轮输出力矩机动 → 星敏精定姿（误差优于 0.1°）→ 相机加电自动测光 → 多帧成像压缩存储'); }
+    else              { banner(5,'数据回传'); sub('数据回传','月球图像 24 帧已存入星上存储器 → 卫星调整姿态，数传天线对准本土地面站'); }
   }
-  /* ---------- 段 4（.76~1）回传本土地面站 ---------- */
+  /* ---------- 段 3（.82~1）调整姿态对准中国站 → 回传 ---------- */
   else {
-    const k = seg(p, .76, 1, 'outCubic');
-    /* 机位：直接从"卫星侧后方"平移到"地球一侧"，不再把月球推到镜头前 */
-    const side = new THREE.Vector3(0,1,0).cross(moonDir).normalize();
-    const upv  = moonDir.clone().cross(side).normalize();
-    const from = sp.clone().addScaledVector(moonDir, -170)
-                          .addScaledVector(side, 150).addScaledVector(upv, 44);
-    const to   = sp.clone().addScaledVector(side, 320).addScaledVector(upv, 150);
-    lerpV3(from, to, k, camPos);
-    /* 视线：先看"卫星+地球"方向，后段稳定在地球，全程不让月球成为主体 */
-    lerpV3(sp.clone().lerp(V(0,0,0), .55),
-           V(0, 20, 0), seg(p,.76,1,'inOutCubic'), look);
-    orbitLine.visible = true;
-    reticle(false); warn(false);
-    payload(false);
+    gsRing.forEach(r=>r.visible=false);
+    gsBeam.visible = false;
 
-    /* 地球转到本土站可见窗口 → 数据下传 */
-    const yawEnd = yawAlignSatToGround(ang, GS_LAT, GS_LON) - .35;
-    earthGrp.rotation.y = lerp(yaw0 + .5, yawEnd, seg(p,.76,1,'inOutCubic'));
+    /* 卫星已把 -Y（数传天线）对准地面站；链路在两者之间 */
+    const linked = p > .84;
+    const dirDS = gsWorld.clone().sub(sp).normalize();
+    const lenDS = Math.max(sp.distanceTo(gsWorld), .001);
+    linkBeam.visible = linked;
+    if (linked){
+      linkBeam.position.copy(sp.clone().add(gsWorld).multiplyScalar(.5));
+      linkBeam.scale.set(lenDS < 90 ? 3.4 : 1, lenDS, lenDS < 90 ? 3.4 : 1);  // 链路短时加粗
+      linkBeam.quaternion.setFromUnitVectors(V(0,1,0), dirDS);
+      linkBeam.material.opacity = .30 + .30*(.5+.5*Math.sin(t*8));
+      flowPackets(sp, gsWorld, dt, t);                 // 方向：卫星 → 地面站（下行）
+    } else packets.forEach(pk=>pk.mesh.visible=false);
 
-    const linked = p > .84 && p < .97;      // 回传结束即撤除数据线与脉冲环
-    const gsWorld = llToVec(GS_LAT, GS_LON, R_EARTH).applyAxisAngle(V(0,1,0), earthGrp.rotation.y);
+    /* 链路两端脉冲环：端点清晰可见（链路很短时尤为必要） */
     gsRing.forEach((ring,i)=>{
       ring.visible = linked;
       if (!linked) return;
-      const q = ((t*.6 + ring.userData.ph) % 1);
+      const q = ((t*.65 + ring.userData.ph) % 1);
       ring.position.copy(gsWorld.clone().multiplyScalar(1.02));
       ring.quaternion.setFromUnitVectors(V(0,0,1), gsWorld.clone().normalize());
-      ring.scale.setScalar(4 + q*44);
-      ring.material.opacity = .6*(1-q);
+      ring.scale.setScalar(4 + q*40);
+      ring.material.opacity = .68*(1-q);
     });
-    linkBeam.visible = linked;
-    if (linked){
-      const mid = sp.clone().add(gsWorld).multiplyScalar(.5);
-      linkBeam.position.copy(mid);
-      linkBeam.scale.set(1, sp.distanceTo(gsWorld), 1);
-      linkBeam.quaternion.setFromUnitVectors(V(0,1,0), gsWorld.clone().sub(sp).normalize());
-      linkBeam.material.opacity = .16 + .2*(.5+.5*Math.sin(t*7));
-      flowPackets(sp, gsWorld, dt, t);
-    } else packets.forEach(pk=>pk.mesh.visible=false);
 
-    const done = p > .97;
-    hud('A', '成像结果', '月球图像 24 帧', '已存入星上存储器');
-    hud('B', '数据下传', done ? '下传完成' : (linked ? '链路已建立' : '等待本土站窗口'),
-        done ? '地面站已接收并校核' :
-        (linked ? ('已传 '+(seg(p,.84,.97,'outCubic')*1.8).toFixed(1)+' / 1.8 GB') : '地球自转至可见窗口'));
-    hudTone('green'); hudBTone(done||linked?'green':'amber');
+    const done = p > .965;
+    const sent = seg(p, .86, .965, 'outCubic');
+
+    /* 观测窗口保持显示，内容切换为"已成像/下传中" */
+    payload(!done, {
+      mode: '月面影像下传',
+      det:  '月球图像 <b>24 帧</b>',
+      conf: '1.00',
+      meta: linked ? ('下行 ' + Math.round(sent*100) + '% · X 波段') : '等待过境窗口',
+      src: 'moon', small: true, frames: 24
+    });
+
+    hud('A', '数据回传', done ? '下传完成' : (linked ? '链路已建立' : '准备下行'),
+        done ? '本土地面站已接收并校核' : '卫星已对准中国大陆地面站');
+    hud('B', '下传进度', Math.round(sent*100)+'%',
+        linked ? ('已传 ' + (sent*1.8).toFixed(1) + ' / 1.8 GB') : '建立数传链路中');
+    hudTone('green'); hudBTone(done||linked ? 'green' : 'amber');
     banner(5,'数据回传');
-    sub('数据回传', done ? '本土地面站已接收月球图像 → 任务闭环，等待下一指令'
-      : (p<.84 ? '等待地面站可见窗口（本土站）→ 建立测控 / 数传链路'
-               : '向【中国大陆地面站】下传月球图像与遥测数据'));
+    sub('数据回传', done ? '本土地面站接收完成 → 任务闭环，等待下一指令'
+      : (linked ? '卫星调整姿态使数传天线对准地面站 → 向【中国大陆地面站】下传 24 帧月面影像'
+                : '卫星调整姿态，数传天线对准本土地面站 → 建立下行链路'));
   }
 
-  moonMesh.rotation.y += dt*.02;
-  payloadFollow(sp);                       // 小窗跟随卫星
+  moonMesh.rotation.y += dt*.02;                        // 月球自转（缓慢）
   camera.position.copy(camPos); camera.lookAt(look);
 }
 
