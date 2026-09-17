@@ -7,3 +7,8 @@ delete_ids.json
 delete_chunks.json
 fix1.xml
 fix2.xml
+
+# 外部资料与提取物（PDF 含作者联系方式等个人信息，禁止入库）
+*.pdf
+/_extract/
+报告梳理-*.md
