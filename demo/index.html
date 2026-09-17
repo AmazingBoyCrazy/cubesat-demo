@@ -731,6 +731,7 @@ function hideAll(){
   targetMark.position.copy(llToVec(TGT_LAT, TGT_LON, R_EARTH*1.012));
   swayBandReset();
   payload(false);
+  capPanel(false);              // 载荷能力清单也需关闭（否则切场景后残留）
   clearTrail(satTrail); clearTrail(debrisTrail);
 }
 function swayBandReset(){ swathBand.visible=false; }
@@ -750,19 +751,22 @@ function driveMoon(p, t, dt){
   gsGrp.visible = true;
 
   /* 卫星沿轨道运行（始终在轨道线上）。
-     关键：起始相位取"星下点纬度 = 地面站纬度"，使上行链路沿径向、不穿过地球。 */
+     相位安排（关键，已数值校核）：
+     · 弧段 aGS+12° → aGS —— 全程处于中国站可见带内（可见半角 74°）
+     · 回传时刻（p→1）相位收敛到 aGS，即卫星【正过中国站上空】
+       （实测回传段与地面站角距 0.6°→0.0°，链路真实可信） */
   const aGS = phaseForLat(GS_LAT);            // 地面站过顶时的相位
-  const a0 = aGS, a1 = aGS + 78;
+  const a0 = aGS + 12, a1 = aGS;
   const ang = lerp(a0, a1, EASE.inOutSine(seg(p,0,1)));
   const sp = orbitPos(ang);
   satellite.position.copy(sp);
   satellite.lookAt(moonMesh.position);
   setOrbitRadius(ORBIT_R);
 
-  /* 地球自转：让地面站正对卫星（沿径向），避免信号线穿地球 */
-  const yaw0 = yawAlignSatToGround(a0, GS_LAT, GS_LON);
-  earthGrp.rotation.y = lerp(yaw0, yaw0 + .55, seg(p,0,1,'inOutSine'));
-  cloudMesh.rotation.y = earthGrp.rotation.y + t*.008;
+  /* 地球自转：固定使地面站对准过顶相位 → 卫星渐次飞临本土站上方 */
+  const yaw0 = yawAlignSatToGround(aGS, GS_LAT, GS_LON);
+  earthGrp.rotation.y = yaw0;
+  cloudMesh.rotation.y = yaw0 + t*.008;
 
   const camPos = V(), look = V();
   const moonDir = moonMesh.position.clone().sub(sp).normalize();
@@ -823,9 +827,13 @@ function driveMoon(p, t, dt){
     orbitLine.visible = true;
     reticle(false); warn(false);
     gsBeam.visible = false;
+    /* 观测窗口：从本段起持续显示，直到回传结束才关闭（不再中途开合） */
     payload(p > .38, {
-      mode:'月球定标', det:'识别目标 <b>月球</b>', conf:'0.96',
-      meta:'星敏指向解算中', src:'moon', frames:0, small:true
+      mode:'月球定标', det: p > .56 ? '识别到 <b>月球</b> · 成像中' : '识别目标 <b>月球</b>',
+      conf: (0.93 + .05*seg(p,.38,.80,'outCubic')).toFixed(2),
+      meta: p > .56 ? '曝光 1/2000s · 短曝光防过曝' : '星敏指向解算中',
+      src:'moon', small:true,
+      frames: p > .62 ? Math.round(seg(p,.62,.80,'outCubic')*24) : 0
     });
     const err = lerp(9.2, .35, seg(p,.30,.46,'outCubic'));
     hud('A', '姿态指向误差', err.toFixed(2)+'°', '目标：月球');
@@ -858,12 +866,13 @@ function driveMoon(p, t, dt){
     sub('自执行', p<.58 ? '星敏精定姿（指向误差优于 0.1°）→ 相机加电自动测光'
                         : '多帧成像 → 图像压缩存储（含成像时刻 / 姿态 / 曝光参数）');
 
-    /* 载荷观测窗口：成像段弹出小窗，旁边显示"识别到的月亮" */
-    const inImg = p > .56 && p < .74;
-    payload(inImg, {
-      mode:'月球定标', det:'识别到 <b>月球</b>', conf:(0.93 + .05*Math.min(1,k)).toFixed(2),
-      meta:'曝光 1/2000s · 增益 2dB', src:'moon', small:true,
-      frames: Math.round(seg(p,.62,.74,'outCubic')*24)
+    /* 观测窗口保持打开（class 已是 on，不会重播弹出动画）→ 全程只弹一次 */
+    payload(true, {
+      mode:'月球定标', det:'识别到 <b>月球</b>' + (p > .58 ? ' · 成像中' : ''),
+      conf:(0.93 + .05*Math.min(1,k)).toFixed(2),
+      meta: p > .58 ? '曝光 1/2000s · 短曝光防过曝' : '自动测光中',
+      src:'moon', small:true,
+      frames: p > .58 ? Math.round(seg(p,.58,.74,'outCubic')*24) : 0
     });
   }
   /* ---------- 段 4（.76~1）回传本土地面站 ---------- */
@@ -883,10 +892,7 @@ function driveMoon(p, t, dt){
     reticle(false); warn(false);
     payload(false);
 
-    /* 地球转到本土站可见窗口 → 数据下传 */
-    const yawEnd = yawAlignSatToGround(ang, GS_LAT, GS_LON) - .35;
-    earthGrp.rotation.y = lerp(yaw0 + .5, yawEnd, seg(p,.76,1,'inOutCubic'));
-
+    /* 地球自转保持固定（地面站始终在卫星可见带内），不再另行转动 */
     const linked = p > .84 && p < .97;      // 回传结束即撤除数据线与脉冲环
     const gsWorld = llToVec(GS_LAT, GS_LON, R_EARTH).applyAxisAngle(V(0,1,0), earthGrp.rotation.y);
     gsRing.forEach((ring,i)=>{
