@@ -46,11 +46,6 @@
   .cbtn{background:#132039;color:#a9bcd6;border:1px solid var(--line2);border-radius:7px;
     padding:8px 14px;font-size:15px;cursor:pointer;font-family:inherit;transition:.18s;}
   .cbtn:hover{background:#1a2c4d;color:#cfe3ff}
-  /* URL 提示胶囊：放在右侧面板底部图例行，给顶栏腾出空间 */
-  .urlinfo{font-family:Consolas,monospace;font-size:12.5px;color:var(--dim2);
-    background:#0a1120;border:1px solid var(--line);border-radius:6px;padding:2px 9px;
-    margin-left:auto;white-space:nowrap;}
-  .urlinfo b{color:var(--cyan);font-weight:600}
   .progline{flex:0 0 auto;height:2px;background:#111c30;position:relative;z-index:20}
   .progline i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#2f7bff,#57d6ff);width:0%}
 
@@ -375,8 +370,7 @@
     <div class="legend">
       <span style="color:#6fe3a1">已完成</span>
       <span style="color:#57d6ff">进行中</span>
-      <span style="color:#7a8aa5">空格暂停 / 1-4 切场景</span>
-      <div class="urlinfo" id="urlinfo">URL: <b>?scene=1</b></div>
+      <span style="color:#7a8aa5">空格暂停 / 1-5 切场景</span>
     </div>
   </aside>
 </main>
@@ -1496,7 +1490,7 @@ function payReset(){
   if (b) b.classList.remove('done','pulse');       // 重播时清除完成标记
 }
 /* ---- 任务说明卡：进入一级任务时先冻结动画 3s，再开始第一步 ---- */
-const INTRO_MS = 3000;
+const INTRO_MS = 5000;      // 说明卡停留时长
 const INTROS = {
   moon: {
     tag:'一级任务 · 月亮拍摄任务',
@@ -1799,7 +1793,6 @@ function syncUrl(){
   u.searchParams.set('scene', cur);
   u.searchParams.delete('t');
   history.replaceState(null,'',u.toString());
-  $('urlinfo').innerHTML = 'URL: <b>?scene='+cur+'</b>　（改数字即切换）';
 }
 function animate(){
   requestAnimationFrame(animate);
@@ -1857,7 +1850,6 @@ function boot(){
   });
 
   setScene(n, false);
-  $('urlinfo').innerHTML = 'URL: <b>?scene='+cur+'</b>　（改数字即切换）';
   $('loading').classList.add('hide');
   animate();
 }
