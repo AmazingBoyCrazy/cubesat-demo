@@ -119,7 +119,7 @@
      默认即为"全屏"尺寸：覆盖整个演示区，关闭时收回 ---- */
   #payloadWin{
     position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.94);
-    width:calc(100% - 64px);height:calc(100% - 180px);margin-top:-28px;
+    width:calc(100% - 108px);height:calc(100% - 180px);margin-top:-28px;
     display:flex;flex-direction:column;
     background:rgba(9,15,28,.96);border:1px solid rgba(90,140,220,.7);border-radius:12px;
     overflow:hidden;box-shadow:0 22px 60px rgba(0,0,0,.78);
@@ -164,6 +164,8 @@
   }
 
   /* ---- 一级分组按钮 ---- */
+  .tabrows{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+  .tabrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .gbtn{
     background:#0f1b2f;color:#7f93b0;border:1px solid var(--line2);border-radius:6px;
     padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
@@ -175,16 +177,16 @@
   .gsep{width:1px;height:20px;background:var(--line2);margin:0 3px}
 
   /* ============ 右侧任务栏 ============ */
-  #panel{flex:1;min-width:340px;max-width:440px;background:var(--panel);
+  #panel{flex:1;min-width:460px;max-width:640px;background:var(--panel);
     border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
-  .phead{flex:0 0 auto;padding:12px 15px;border-bottom:1px solid var(--line);background:#0d1729}
-  .phead .t{font-size:16px;color:#bfe0ff;font-weight:700}
-  .phead .st{font-size:12.5px;color:var(--dim);margin-top:3px}
-  .phead .cap{display:inline-block;margin-top:7px;font-size:11.5px;padding:3px 10px;border-radius:10px;
+  .phead{flex:0 0 auto;padding:14px 18px;border-bottom:1px solid var(--line);background:#0d1729}
+  .phead .t{font-size:30px;color:#bfe0ff;font-weight:700;line-height:1.25}
+  .phead .st{font-size:24px;color:var(--dim);margin-top:5px;line-height:1.4}
+  .phead .cap{display:inline-block;margin-top:9px;font-size:22px;padding:4px 13px;border-radius:12px;
     background:#16233c;border:1px solid var(--line2);color:#8fa3c2;font-family:Consolas,monospace}
-  .pbody{flex:1;overflow-y:auto;padding:12px 15px 24px;scroll-behavior:smooth}
-  .pbody::-webkit-scrollbar{width:7px}
-  .pbody::-webkit-scrollbar-thumb{background:#22314f;border-radius:4px}
+  .pbody{flex:1;overflow-y:auto;padding:14px 18px 26px;scroll-behavior:smooth}
+  .pbody::-webkit-scrollbar{width:10px}
+  .pbody::-webkit-scrollbar-thumb{background:#22314f;border-radius:5px}
 
   /* 阶段框：依次"弹出" */
   @keyframes phasePop{
@@ -192,39 +194,39 @@
     60%{opacity:1;transform:translateY(-2px) scale(1.012)}
     100%{opacity:1;transform:none}
   }
-  .phase{position:relative;margin-bottom:12px;border:1px solid var(--line);border-radius:9px;
+  .phase{position:relative;margin-bottom:14px;border:1px solid var(--line);border-radius:10px;
     background:#0d1526;overflow:hidden;animation:phasePop .46s cubic-bezier(.22,.9,.32,1.1) both;}
-  .phase::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  .phase::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
     background:var(--amber);transition:.35s}
   .phase.done::before{background:var(--green)}
-  .phase .ph{display:flex;align-items:center;gap:9px;padding:10px 13px 7px;
-    font-size:14.5px;font-weight:700;color:#9ecbff}
+  .phase .ph{display:flex;align-items:center;gap:11px;padding:12px 15px 8px;
+    font-size:29px;font-weight:700;color:#9ecbff}
   .phase.done .ph{color:#8fd6b0}
-  .phase .badge{margin-left:auto;font-size:11.5px;font-family:Consolas,monospace;
-    color:var(--cyan);border:1px solid #2b4a6b;border-radius:10px;padding:2px 9px}
+  .phase .badge{margin-left:auto;font-size:22px;font-family:Consolas,monospace;
+    color:var(--cyan);border:1px solid #2b4a6b;border-radius:12px;padding:3px 12px}
   .phase.done .badge{color:var(--green);border-color:#2c5a44}
-  .phase ul{list-style:none;padding:0 13px 11px}
+  .phase ul{list-style:none;padding:0 15px 13px}
   /* 子项也依次浮现 → 强化"正在自主决策"的过程感 */
-  .phase li{font-size:13.5px;color:#94a8c2;line-height:1.72;padding-left:17px;position:relative;
+  .phase li{font-size:27px;color:#94a8c2;line-height:1.62;padding-left:24px;position:relative;
     opacity:0;transform:translateX(-7px);
     transition:opacity .34s ease, transform .34s ease, color .3s}
   .phase li.show{opacity:1;transform:none}
-  .phase li::before{content:"";position:absolute;left:3px;top:10px;width:6px;height:6px;
+  .phase li::before{content:"";position:absolute;left:4px;top:18px;width:9px;height:9px;
     border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
   .phase.active li::before{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
-  .phase li .svc{color:#9ecbff;font-family:Consolas,monospace;font-size:13.5px;font-weight:700;
-    border:1px solid rgba(120,180,255,.55);background:rgba(45,90,160,.28);
-    border-radius:4px;padding:0 6px;margin-right:4px;display:inline-block;line-height:1.5;
-    box-shadow:0 0 8px rgba(80,150,255,.18)}
+  .phase li .svc{color:#ffd166;font-family:Consolas,monospace;font-size:27px;font-weight:700;
+    border:1.5px solid rgba(255,209,102,.72);background:rgba(140,100,20,.32);
+    border-radius:5px;padding:0 8px;margin-right:6px;display:inline-block;line-height:1.45;
+    box-shadow:0 0 10px rgba(255,200,80,.22)}
 
   .dlbar{margin:2px 0 12px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#0d1526}
-  .dlbar .hd{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:6px}
+  .dlbar .hd{display:flex;justify-content:space-between;font-size:22px;color:var(--dim);margin-bottom:6px}
   .dlbar .hd b{color:var(--cyan);font-family:Consolas,monospace}
   .dlbar .tr{height:7px;background:#16233c;border-radius:4px;overflow:hidden}
   .dlbar .tr i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#2f7bff,#57d6ff);transition:width .25s}
 
-  .legend{flex:0 0 auto;padding:8px 15px;border-top:1px solid var(--line);
-    font-size:10.5px;color:var(--dim2);display:flex;gap:12px;flex-wrap:wrap;background:#0a1220}
+  .legend{flex:0 0 auto;padding:9px 18px;border-top:1px solid var(--line);
+    font-size:21px;color:var(--dim2);display:flex;gap:12px;flex-wrap:wrap;background:#0a1220}
   .legend span::before{content:"●";margin-right:4px}
 
   #loading{position:fixed;inset:0;background:#05080f;display:flex;align-items:center;
@@ -467,8 +469,8 @@ const SCENES = [
 
 /* 一级功能分组：把五个场景归为两大功能块 */
 const GROUPS = [
-  { id:'moon', name:'月亮拍摄',     scenes:[1] },
-  { id:'new',  name:'新拍摄功能',   scenes:[2,3,4,5] },
+  { id:'moon', name:'月亮拍摄任务', scenes:[1] },
+  { id:'new',  name:'新拍摄任务',   scenes:[2,3,4,5] },
 ];
 
 /* =========================================================================
@@ -1652,30 +1654,26 @@ function boot(){
   ready = true;
 
   const tabs = $('tabs');
-  /* 两级标签：一级 = 两大功能分组（月亮拍摄 / 新拍摄功能），二级 = 组内场景 */
-  GROUPS.forEach((g, gi) => {
-    if (gi > 0){
-      const sep = document.createElement('span');
-      sep.className = 'gsep';
-      tabs.appendChild(sep);
-    }
+  tabs.className = 'tabrows';                        // 纵向两行
+  /* 两行标签：第一行 = 月亮拍摄任务；第二行 = 新拍摄任务（含 4 个场景） */
+  GROUPS.forEach(g => {
+    const row = document.createElement('div');
+    row.className = 'tabrow';
     const gb = document.createElement('button');
     gb.className = 'gbtn'; gb.dataset.g = g.id;
     gb.textContent = g.name;
     gb.onclick = () => { setScene(g.scenes[0]); };   // 点击分组跳到该组首个场景
-    tabs.appendChild(gb);
+    row.appendChild(gb);
+    g.scenes.forEach(id => {
+      const sc = SCENES[id-1];
+      const b = document.createElement('button');
+      b.className = 'tab'; b.dataset.n = sc.id;
+      b.innerHTML = '<span class="n">0'+sc.id+'</span>'+sc.name;
+      b.onclick = () => setScene(sc.id);
+      row.appendChild(b);
+    });
+    tabs.appendChild(row);
   });
-  const subTabs = document.createElement('div');
-  subTabs.className = 'tabs'; subTabs.id = 'subTabs';
-  subTabs.style.marginLeft = '0';
-  SCENES.forEach(s=>{
-    const b = document.createElement('button');
-    b.className='tab'; b.dataset.n=s.id;
-    b.innerHTML = '<span class="n">0'+s.id+'</span>'+s.name;
-    b.onclick = ()=> setScene(s.id);
-    subTabs.appendChild(b);
-  });
-  tabs.appendChild(subTabs);
 
   setScene(n, false);
   $('urlinfo').innerHTML = 'URL: <b>?scene='+cur+'</b>　（改数字即切换）';
