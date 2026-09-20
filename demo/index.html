@@ -29,13 +29,13 @@
   .tabs{display:flex;gap:7px;margin-left:8px;flex-wrap:wrap}
   .tab{
     background:#132039; color:#9db3d4; border:1px solid var(--line2);
-    border-radius:6px; padding:6px 12px; font-size:12.5px; cursor:pointer;
+    border-radius:7px; padding:7px 15px; font-size:19px; cursor:pointer;
     transition:all .18s; white-space:nowrap; font-family:inherit;
   }
   .tab:hover{background:#1a2c4d;color:#cfe3ff}
   .tab.active{background:linear-gradient(180deg,#2f7bff,#1e5fd4); border-color:#5a9bff;
     color:#fff; box-shadow:0 0 12px rgba(74,144,255,.45);}
-  .tab .n{opacity:.65;margin-right:5px;font-family:Consolas,monospace}
+  .tab .n{opacity:.65;margin-right:6px;font-family:Consolas,monospace;font-size:18px}
   .spacer{flex:1}
   .ctrl{display:flex;align-items:center;gap:7px}
   .cbtn{background:#132039;color:#8fa3c2;border:1px solid var(--line2);border-radius:6px;
@@ -164,17 +164,17 @@
   }
 
   /* ---- 一级分组按钮 ---- */
-  .tabrows{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
-  .tabrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tabrows{display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+  .tabrow{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
   .gbtn{
     background:#0f1b2f;color:#7f93b0;border:1px solid var(--line2);border-radius:6px;
-    padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+    padding:7px 17px;font-size:19.5px;font-weight:700;cursor:pointer;font-family:inherit;
     transition:all .18s;white-space:nowrap;
   }
   .gbtn:hover{background:#17263f;color:#cfe3ff}
   .gbtn.active{background:linear-gradient(180deg,#1f5fd0,#17499e);border-color:#4a8bff;
     color:#fff;box-shadow:0 0 12px rgba(74,144,255,.4)}
-  .gsep{width:1px;height:20px;background:var(--line2);margin:0 3px}
+  .gsep{width:1px;height:26px;background:var(--line2);margin:0 4px}
 
   /* ============ 右侧任务栏 ============ */
   #panel{flex:1;min-width:460px;max-width:640px;background:var(--panel);
@@ -755,6 +755,7 @@ function hideAll(){
   targetMark.position.copy(llToVec(TGT_LAT, TGT_LON, R_EARTH*1.012));
   swayBandReset();
   payload(false);
+  payReset();
   capPanel(false);              // 载荷能力清单也需关闭（否则切场景后残留）
   clearTrail(satTrail); clearTrail(debrisTrail);
 }
@@ -852,7 +853,7 @@ function driveMoon(p, t, dt){
     reticle(false); warn(false);
     gsBeam.visible = false;
     /* 观测窗口：从本段起持续显示，直到回传结束才关闭（不再中途开合） */
-    payload(p > .38, {
+    payload(payGate(p > .38), {
       mode:'月球定标', det: p > .56 ? '识别到 <b>月球</b> · 成像中' : '识别目标 <b>月球</b>',
       conf: (0.93 + .05*seg(p,.38,.80,'outCubic')).toFixed(2),
       meta: p > .56 ? '曝光 1/2000s · 短曝光防过曝' : '星敏指向解算中',
@@ -891,7 +892,7 @@ function driveMoon(p, t, dt){
                         : '多帧成像 → 图像压缩存储（含成像时刻 / 姿态 / 曝光参数）');
 
     /* 观测窗口保持打开（class 已是 on，不会重播弹出动画）→ 全程只弹一次 */
-    payload(true, {
+    payload(payGate(true), {
       mode:'月球定标', det:'识别到 <b>月球</b>' + (p > .58 ? ' · 成像中' : ''),
       conf:(0.93 + .05*Math.min(1,k)).toFixed(2),
       meta: p > .58 ? '曝光 1/2000s · 短曝光防过曝' : '自动测光中',
@@ -1249,7 +1250,7 @@ function driveGround(p, t, dt){
   /* 载荷观测窗口：成像段弹出（小窗靠卫星侧，不遮挡主体） */
   const inImg = p > .62 && p < .90;
   if (inImg){
-    payload(true, {
+    payload(payGate(true), {
       mode:'对地成像 + 飞机识别', det:'识别到 <b>飞机</b>（新算法）',
       conf:(0.88 + .08*seg(p,.62,.88,'outCubic')).toFixed(2),
       meta:'曝光 1/1200s · 分辨率 0.8m', src:'aircraft',
@@ -1397,6 +1398,24 @@ function hudBTone(t){ $('hudB_v').className = 'num'+(t?' '+t:''); }
 
 /* ---- 载荷观测窗口 ---- */
 const pwCv = () => $('pwCanvas');
+/* ---- 观测窗展示门控：弹出后停留 HOLD_MS，期间冻结动画；到时自动关闭 ---- */
+const HOLD_MS = 5000;
+const PAY = { open:false, until:0, done:false };
+function payGate(want){
+  const now = performance.now();
+  if (want){
+    if (PAY.done) return false;                    // 本场景已展示完 → 不再弹出
+    if (!PAY.open){ PAY.open = true; PAY.until = now + HOLD_MS; }
+    if (now < PAY.until) return true;              // 展示中（动画冻结）
+    PAY.open = false; PAY.done = true;             // 到时 → 关闭并标记
+    return false;
+  }
+  if (PAY.open){ PAY.open = false; PAY.done = true; }   // 外部要求关闭
+  return false;
+}
+function payHold(){ return PAY.open; }             // 是否处于"展示冻结"期
+function payReset(){ PAY.open = false; PAY.until = 0; PAY.done = false; }
+
 function payload(on, info){
   const el = $('payloadWin');
   if (!on){ el.classList.remove('on'); return; }
@@ -1628,9 +1647,9 @@ function animate(){
   if (!ready) return;
 
   const sc = SCENES[cur-1];
-  if (playing){
+  if (playing && !payHold()){                      // 观测窗展示期间冻结动画
     prog += dt*speed/sc.dur;
-    if (prog >= 1){ prog = 0; panelReset(sc); }    // 循环 → 任务栏也重置，重新依次弹出
+    if (prog >= 1){ prog = 0; panelReset(sc); payReset(); }   // 循环 → 任务栏与门控一并重置
   }
   const t = now/1000;
   if (satFlame) satFlame.visible = false;           // 每帧复位，由场景按需打开
@@ -1707,7 +1726,7 @@ addEventListener('keydown', e=>{
 window.DEMO = {
   setScene,
   get scene(){ return cur; },
-  setProgress(v){ prog = clamp(v,0,1); playing=false; $('btnPlay').textContent='▶ 播放'; },
+  setProgress(v){ payReset(); prog = clamp(v,0,1); playing=false; $('btnPlay').textContent='▶ 播放'; },
   play(){ playing=true; }, pause(){ playing=false; },
   get progress(){ return prog; },
 };
