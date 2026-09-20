@@ -115,28 +115,30 @@
     100%{opacity:1;transform:translateX(-50%)}
   }
 
-  /* ---- 载荷观测窗口（弹出） ---- */
+  /* ---- 载荷观测窗口（弹出）
+     默认即为"全屏"尺寸：覆盖整个演示区，关闭时收回 ---- */
   #payloadWin{
-    position:absolute;left:22px;bottom:74px;width:290px;
-    background:rgba(9,15,28,.94);border:1px solid rgba(90,140,220,.6);border-radius:10px;
-    overflow:hidden;box-shadow:0 16px 44px rgba(0,0,0,.66);
-    opacity:0;transform:translateY(14px) scale(.95);pointer-events:none;
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.94);
+    width:calc(100% - 64px);height:calc(100% - 180px);margin-top:-28px;
+    display:flex;flex-direction:column;
+    background:rgba(9,15,28,.96);border:1px solid rgba(90,140,220,.7);border-radius:12px;
+    overflow:hidden;box-shadow:0 22px 60px rgba(0,0,0,.78);
+    opacity:0;pointer-events:none;
     transition:opacity .34s cubic-bezier(.2,.9,.3,1.15), transform .34s cubic-bezier(.2,.9,.3,1.15);
-    backdrop-filter:blur(8px);
+    backdrop-filter:blur(10px);
   }
-  #payloadWin.on{opacity:1;transform:none}
-  /* 小窗模式：尺寸更紧凑，仍固定在左下角 */
-  #payloadWin.small{width:236px}
-  #payloadWin .hd{display:flex;align-items:center;gap:7px;padding:7px 10px;
-    background:rgba(20,32,54,.9);border-bottom:1px solid rgba(60,90,140,.4);font-size:11.5px}
-  #payloadWin .hd .dot{width:7px;height:7px;border-radius:50%;background:var(--green);
+  #payloadWin.on{opacity:1;transform:translate(-50%,-50%)}
+  #payloadWin .hd{display:flex;align-items:center;gap:9px;padding:11px 16px;flex:0 0 auto;
+    background:rgba(20,32,54,.92);border-bottom:1px solid rgba(60,90,140,.45);font-size:14px}
+  #payloadWin .hd .dot{width:9px;height:9px;border-radius:50%;background:var(--green);
     box-shadow:0 0 7px var(--green);animation:blink 1.1s infinite}
-  #payloadWin .hd .md{margin-left:auto;color:var(--amber);font-size:11px}
-  #payloadWin canvas{display:block;width:100%;background:#04070d}
-  #payloadWin .ft{padding:6px 10px;font-size:10.5px;color:#8fa3c2;
-    background:rgba(20,32,54,.9);border-top:1px solid rgba(60,90,140,.4);
-    display:flex;gap:8px;flex-wrap:wrap;font-family:Consolas,monospace}
-  #payloadWin .ft b{color:var(--green);font-weight:600}
+  #payloadWin .hd .md{margin-left:auto;color:var(--amber);font-size:14px;font-weight:700}
+  #payloadWin .cam-body{flex:1;position:relative;min-height:0}
+  #payloadWin canvas{display:block;width:100%;height:100%;background:#04070d}
+  #payloadWin .ft{padding:9px 16px;font-size:13px;color:#9db3d4;flex:0 0 auto;
+    background:rgba(20,32,54,.92);border-top:1px solid rgba(60,90,140,.45);
+    display:flex;gap:16px;flex-wrap:wrap;font-family:Consolas,monospace}
+  #payloadWin .ft b{color:var(--green);font-weight:700}
 
   /* ---- 载荷能力清单（算法上注场景用） ---- */
   #capPanel{
@@ -160,6 +162,17 @@
     70%{opacity:1;transform:translateX(2px) scale(1.03)}
     100%{opacity:1;transform:none}
   }
+
+  /* ---- 一级分组按钮 ---- */
+  .gbtn{
+    background:#0f1b2f;color:#7f93b0;border:1px solid var(--line2);border-radius:6px;
+    padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+    transition:all .18s;white-space:nowrap;
+  }
+  .gbtn:hover{background:#17263f;color:#cfe3ff}
+  .gbtn.active{background:linear-gradient(180deg,#1f5fd0,#17499e);border-color:#4a8bff;
+    color:#fff;box-shadow:0 0 12px rgba(74,144,255,.4)}
+  .gsep{width:1px;height:20px;background:var(--line2);margin:0 3px}
 
   /* ============ 右侧任务栏 ============ */
   #panel{flex:1;min-width:340px;max-width:440px;background:var(--panel);
@@ -199,7 +212,10 @@
   .phase li::before{content:"";position:absolute;left:3px;top:10px;width:6px;height:6px;
     border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
   .phase.active li::before{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
-  .phase li .svc{color:#7fb3ff;font-family:Consolas,monospace;font-size:12.5px}
+  .phase li .svc{color:#9ecbff;font-family:Consolas,monospace;font-size:13.5px;font-weight:700;
+    border:1px solid rgba(120,180,255,.55);background:rgba(45,90,160,.28);
+    border-radius:4px;padding:0 6px;margin-right:4px;display:inline-block;line-height:1.5;
+    box-shadow:0 0 8px rgba(80,150,255,.18)}
 
   .dlbar{margin:2px 0 12px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#0d1526}
   .dlbar .hd{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:6px}
@@ -274,7 +290,7 @@
       <div id="payloadWin">
         <div class="hd"><span class="dot"></span><span>载荷观测窗口</span>
           <span class="md" id="pwMode">月球定标</span></div>
-        <canvas id="pwCanvas" width="580" height="420"></canvas>
+        <div class="cam-body"><canvas id="pwCanvas" width="1120" height="660"></canvas></div>
         <div class="ft">
           <span id="pwDet">目标锁定 <b>月球</b></span>
           <span>置信度 <b id="pwConf">0.98</b></span>
@@ -447,6 +463,12 @@ const SCENES = [
     ],
     drive: driveDownlink
   },
+];
+
+/* 一级功能分组：把五个场景归为两大功能块 */
+const GROUPS = [
+  { id:'moon', name:'月亮拍摄',     scenes:[1] },
+  { id:'new',  name:'新拍摄功能',   scenes:[2,3,4,5] },
 ];
 
 /* =========================================================================
@@ -832,7 +854,7 @@ function driveMoon(p, t, dt){
       mode:'月球定标', det: p > .56 ? '识别到 <b>月球</b> · 成像中' : '识别目标 <b>月球</b>',
       conf: (0.93 + .05*seg(p,.38,.80,'outCubic')).toFixed(2),
       meta: p > .56 ? '曝光 1/2000s · 短曝光防过曝' : '星敏指向解算中',
-      src:'moon', small:true,
+      src:'moon',
       frames: p > .62 ? Math.round(seg(p,.62,.80,'outCubic')*24) : 0
     });
     const err = lerp(9.2, .35, seg(p,.30,.46,'outCubic'));
@@ -871,7 +893,7 @@ function driveMoon(p, t, dt){
       mode:'月球定标', det:'识别到 <b>月球</b>' + (p > .58 ? ' · 成像中' : ''),
       conf:(0.93 + .05*Math.min(1,k)).toFixed(2),
       meta: p > .58 ? '曝光 1/2000s · 短曝光防过曝' : '自动测光中',
-      src:'moon', small:true,
+      src:'moon',
       frames: p > .58 ? Math.round(seg(p,.58,.74,'outCubic')*24) : 0
     });
   }
@@ -1377,7 +1399,6 @@ function payload(on, info){
   const el = $('payloadWin');
   if (!on){ el.classList.remove('on'); return; }
   el.classList.add('on');
-  el.classList.toggle('small', !!info.small);
   $('pwMode').textContent = info.mode;
   $('pwDet').innerHTML = info.det;
   $('pwConf').textContent = info.conf;
@@ -1411,9 +1432,15 @@ function capPanel(on, withNew){
 }
 function drawPayload(info){
   const cv = pwCv(), c = cv.getContext('2d');
-  /* 小窗模式用较小画布，保持清晰不模糊 */
-  const want = info.small ? [380, 280] : [580, 420];
-  if (cv.width !== want[0]) { cv.width = want[0]; cv.height = want[1]; }
+  /* 全屏窗口：画布按容器实际尺寸 × DPR 设置，保证清晰 */
+  const box = cv.parentElement;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const cw = Math.max(320, box.clientWidth || 1120);
+  const ch = Math.max(200, box.clientHeight || 660);
+  if (cv.width !== Math.round(cw*dpr) || cv.height !== Math.round(ch*dpr)) {
+    cv.width  = Math.round(cw*dpr);
+    cv.height = Math.round(ch*dpr);
+  }
   const W = cv.width, H = cv.height;
   c.fillStyle = '#04070d'; c.fillRect(0,0,W,H);
 
@@ -1580,6 +1607,8 @@ function setScene(n, pushUrl){
   $('hbV').textContent = sc.name;
   $('hbS').textContent = sc.sub + ' · ' + sc.motion;
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', +b.dataset.n===cur));
+  const gi = GROUPS.findIndex(g => g.scenes.indexOf(cur) >= 0);      // 高亮所属一级分组
+  document.querySelectorAll('.gbtn').forEach(b=>b.classList.toggle('active', b.dataset.g === (GROUPS[gi]||{}).id));
   $('hudA').style.display='none'; $('hudB').style.display='none';
   if (pushUrl !== false) syncUrl();
 }
@@ -1623,13 +1652,30 @@ function boot(){
   ready = true;
 
   const tabs = $('tabs');
+  /* 两级标签：一级 = 两大功能分组（月亮拍摄 / 新拍摄功能），二级 = 组内场景 */
+  GROUPS.forEach((g, gi) => {
+    if (gi > 0){
+      const sep = document.createElement('span');
+      sep.className = 'gsep';
+      tabs.appendChild(sep);
+    }
+    const gb = document.createElement('button');
+    gb.className = 'gbtn'; gb.dataset.g = g.id;
+    gb.textContent = g.name;
+    gb.onclick = () => { setScene(g.scenes[0]); };   // 点击分组跳到该组首个场景
+    tabs.appendChild(gb);
+  });
+  const subTabs = document.createElement('div');
+  subTabs.className = 'tabs'; subTabs.id = 'subTabs';
+  subTabs.style.marginLeft = '0';
   SCENES.forEach(s=>{
     const b = document.createElement('button');
     b.className='tab'; b.dataset.n=s.id;
     b.innerHTML = '<span class="n">0'+s.id+'</span>'+s.name;
     b.onclick = ()=> setScene(s.id);
-    tabs.appendChild(b);
+    subTabs.appendChild(b);
   });
+  tabs.appendChild(subTabs);
 
   setScene(n, false);
   $('urlinfo').innerHTML = 'URL: <b>?scene='+cur+'</b>　（改数字即切换）';
