@@ -20,13 +20,16 @@
 
   /* ============ 顶栏 ============ */
   header{
-    flex:0 0 auto; display:flex; align-items:center; gap:14px;
-    padding:9px 16px; background:linear-gradient(180deg,#0d1729,#0a1220);
+    flex:0 0 auto; display:flex; align-items:center; gap:20px;
+    padding:12px 20px; background:linear-gradient(180deg,#0d1729,#0a1220);
     border-bottom:1px solid var(--line); z-index:20;
   }
-  .brand{font-size:14px;font-weight:700;color:#bfe0ff;letter-spacing:.6px;white-space:nowrap}
-  .brand small{display:block;font-size:10px;font-weight:400;color:var(--dim2);letter-spacing:0}
-  .tabs{display:flex;gap:7px;margin-left:8px;flex-wrap:wrap}
+  /* 左侧品牌区：加高加大，与 19px 的标签字号对齐，不再显得「小一号」 */
+  .brand{font-size:17px;font-weight:700;color:#bfe0ff;letter-spacing:.6px;white-space:nowrap;
+    padding-left:12px;border-left:3px solid var(--blue);flex:0 0 auto}
+  .brand small{display:block;font-size:11px;font-weight:400;color:var(--dim2);
+    letter-spacing:.3px;margin-top:3px}
+  .tabs{display:flex;gap:7px;margin-left:6px;flex-wrap:wrap;flex:0 1 auto;min-width:0}
   .tab{
     background:#132039; color:#9db3d4; border:1px solid var(--line2);
     border-radius:7px; padding:7px 15px; font-size:19px; cursor:pointer;
@@ -36,14 +39,17 @@
   .tab.active{background:linear-gradient(180deg,#2f7bff,#1e5fd4); border-color:#5a9bff;
     color:#fff; box-shadow:0 0 12px rgba(74,144,255,.45);}
   .tab .n{opacity:.65;margin-right:6px;font-family:Consolas,monospace;font-size:18px}
-  .spacer{flex:1}
-  .ctrl{display:flex;align-items:center;gap:7px}
-  .cbtn{background:#132039;color:#8fa3c2;border:1px solid var(--line2);border-radius:6px;
-    padding:5px 10px;font-size:11.5px;cursor:pointer;font-family:inherit;transition:.18s;}
+  .spacer{flex:1 1 auto;min-width:10px}
+  /* 右侧控制区：字号同步放大，与左侧品牌、中间标签形成一条视觉基线 */
+  .ctrl{display:flex;align-items:center;gap:9px;flex:0 0 auto;
+    padding-left:16px;border-left:1px solid var(--line2)}
+  .cbtn{background:#132039;color:#a9bcd6;border:1px solid var(--line2);border-radius:7px;
+    padding:8px 14px;font-size:15px;cursor:pointer;font-family:inherit;transition:.18s;}
   .cbtn:hover{background:#1a2c4d;color:#cfe3ff}
-  .urlinfo{font-family:Consolas,monospace;font-size:11px;color:var(--dim2);
-    background:#0a1120;border:1px solid var(--line);border-radius:6px;padding:4px 9px;
-    max-width:330px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* URL 提示胶囊：放在右侧面板底部图例行，给顶栏腾出空间 */
+  .urlinfo{font-family:Consolas,monospace;font-size:12.5px;color:var(--dim2);
+    background:#0a1120;border:1px solid var(--line);border-radius:6px;padding:2px 9px;
+    margin-left:auto;white-space:nowrap;}
   .urlinfo b{color:var(--cyan);font-weight:600}
   .progline{flex:0 0 auto;height:2px;background:#111c30;position:relative;z-index:20}
   .progline i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#2f7bff,#57d6ff);width:0%}
@@ -165,13 +171,45 @@
     100%{opacity:1;transform:none}
   }
 
+  /* ---- 任务说明卡（进入一级任务时先暂停 3s 展示） ---- */
+  #introCard{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(3,7,15,.62);backdrop-filter:blur(4px);
+    opacity:0;visibility:hidden;
+    transition:opacity .42s ease, visibility .42s;
+  }
+  #introCard.on{opacity:1;visibility:visible}
+  #introCard .ib{
+    width:min(820px,74%);background:linear-gradient(180deg,#101c32,#0b1424);
+    border:1px solid rgba(90,150,230,.55);border-left:4px solid var(--blue);border-radius:13px;
+    padding:26px 30px 20px;box-shadow:0 28px 76px rgba(0,0,0,.74);
+    transform:scale(.93) translateY(14px);
+    transition:transform .5s cubic-bezier(.2,.9,.3,1.04);
+  }
+  #introCard.on .ib{transform:none}
+  #introCard .ihd{display:flex;align-items:center;gap:13px;margin-bottom:15px}
+  #introCard .ihd .tag{font-size:15px;font-family:Consolas,monospace;color:#8fc0ff;
+    background:rgba(47,123,255,.16);border:1px solid rgba(90,150,230,.45);
+    border-radius:6px;padding:4px 10px;white-space:nowrap}
+  #introCard .ihd b{font-size:27px;color:#d6e6ff;font-weight:700;line-height:1.3}
+  #introCard .itx{font-size:21px;line-height:1.72;color:#b9cbe4;
+    text-align:left;text-indent:0;letter-spacing:.2px}
+  #introCard .ifoot{display:flex;align-items:center;gap:12px;margin-top:20px;
+    padding-top:13px;border-top:1px solid rgba(60,90,140,.35);
+    font-size:14px;font-family:Consolas,monospace;color:var(--dim2)}
+  #introCard .ifoot .tr{flex:1;height:3px;background:#182842;border-radius:2px;overflow:hidden}
+  #introCard .ifoot .tr i{display:block;height:100%;width:0%;
+    background:linear-gradient(90deg,#2f7bff,#57d6ff)}
+
   /* ---- 一级分组按钮 ---- */
-  .tabrows{display:flex;flex-direction:column;gap:7px;align-items:flex-start}
-  .tabrow{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .tabrows{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+  .tabrow{display:flex;align-items:center;gap:8px}
+  /* 一级分组按钮固定等宽（两行左边缘对齐，后面的场景标签也就在同一竖直线上） */
   .gbtn{
     background:#0f1b2f;color:#7f93b0;border:1px solid var(--line2);border-radius:6px;
-    padding:7px 17px;font-size:19.5px;font-weight:700;cursor:pointer;font-family:inherit;
-    transition:all .18s;white-space:nowrap;
+    padding:7px 10px;font-size:19.5px;font-weight:700;cursor:pointer;font-family:inherit;
+    transition:all .18s;white-space:nowrap;flex:0 0 auto;
+    width:182px;text-align:center;
   }
   .gbtn:hover{background:#17263f;color:#cfe3ff}
   .gbtn.active{background:linear-gradient(180deg,#1f5fd0,#17499e);border-color:#4a8bff;
@@ -252,13 +290,12 @@
 <body>
 
 <header>
-  <div class="brand">软件定义卫星 · 演示预览<small>Software-Defined Satellite / Demo Preview</small></div>
+  <div class="brand">软件定义卫星 · 演示预览<small>Software-Defined Satellite</small></div>
   <div class="tabs" id="tabs"></div>
   <div class="spacer"></div>
   <div class="ctrl">
     <button class="cbtn" id="btnPlay">⏸ 暂停</button>
     <button class="cbtn" id="btnSpeed">1.0×</button>
-    <div class="urlinfo" id="urlinfo">URL: <b>?scene=1</b></div>
   </div>
 </header>
 <div class="progline"><i id="prog"></i></div>
@@ -271,6 +308,15 @@
         <div class="k" id="hbK">SCENE 01</div>
         <div class="v" id="hbV">拍摄月亮</div>
         <div class="s" id="hbS">—</div>
+      </div>
+
+      <!-- 任务说明卡：进入一级任务时先暂停 3s 展示，再开始第一步 -->
+      <div id="introCard">
+        <div class="ib">
+          <div class="ihd"><span class="tag" id="introTag">一级任务</span><b id="introTtl"></b></div>
+          <div class="itx" id="introTxt"></div>
+          <div class="ifoot"><span>自动开始演示</span><span class="tr"><i id="introBar"></i></span></div>
+        </div>
       </div>
 
       <!-- 顶部居中横幅：当前任务环节 -->
@@ -330,6 +376,7 @@
       <span style="color:#6fe3a1">已完成</span>
       <span style="color:#57d6ff">进行中</span>
       <span style="color:#7a8aa5">空格暂停 / 1-4 切场景</span>
+      <div class="urlinfo" id="urlinfo">URL: <b>?scene=1</b></div>
     </div>
   </aside>
 </main>
@@ -418,7 +465,8 @@ function yawAlignSatToGround(aDeg, lat, lon){
    ========================================================================= */
 const SCENES = [
   {
-    id:1, name:'拍摄月亮', sub:'地面指令 → 任务拆解 → 姿态指向 → 成像 → 回传本土',
+    id:1, name:'拍摄月亮', short:'拍摄月亮',
+    sub:'地面指令 → 任务拆解 → 姿态指向 → 成像 → 回传本土',
     cap:'L2 星上辅助', dur:26, motion:'平滑环绕 · 大范围缓动',
     phases:[
       { k:'指令接收', at:.00, items:['地面站上注任务：拍摄月球'] },
@@ -430,7 +478,8 @@ const SCENES = [
     drive: driveMoon
   },
   {
-    id:2, name:'载荷算法上注 · 新增能力', sub:'上注算法包 → 校验 → 装订入库 → 新增飞机识别能力',
+    id:2, name:'载荷算法上注 · 新增能力', short:'载荷算法上注',
+    sub:'上注算法包 → 校验 → 装订入库 → 新增飞机识别能力',
     cap:'L3 星上自主（软件定义核心）', dur:22, motion:'上行数据流 · 能力清单逐项点亮',
     phases:[
       { k:'指令接收', at:.00, items:['地面站上注载荷算法包：飞机目标识别 v2.1','上行链路建立，分包接收'] },
@@ -441,7 +490,8 @@ const SCENES = [
     drive: driveUpload
   },
   {
-    id:3, name:'赴观测途中 · 遇废弃卫星自主规避', sub:'接新指令 → 途中识别 → 计算 → 变轨规避 → 恢复',
+    id:3, name:'赴观测途中 · 遇废弃卫星自主规避', short:'自主规避',
+    sub:'接新指令 → 途中识别 → 计算 → 变轨规避 → 恢复',
     cap:'L3 星上自主（前沿）', dur:26, motion:'急促变焦 · 轨迹急偏 · 告警脉冲',
     phases:[
       { k:'指令接收', at:.00, items:['接到新任务：前往美国上空观测标记物','<span class="svc">飞轮</span> 调整姿态转入转移轨道'] },
@@ -454,7 +504,8 @@ const SCENES = [
     drive: driveAvoid
   },
   {
-    id:4, name:'拍摄美国上空标记物', sub:'过境窗口 · 对地成像 · 飞机目标识别',
+    id:4, name:'拍摄美国上空标记物', short:'对地成像',
+    sub:'过境窗口 · 对地成像 · 飞机目标识别',
     cap:'L2 星上辅助', dur:24, motion:'高空俯冲 · 地球自转定位 · 地面横扫',
     phases:[
       { k:'指令接收', at:.00, items:['上注任务：拍摄美国上空标记物（含目标经纬度）'] },
@@ -466,7 +517,8 @@ const SCENES = [
     drive: driveGround
   },
   {
-    id:5, name:'返回本土 · 图像回传', sub:'返回中国大陆上空 → 过境建链 → 数传下传',
+    id:5, name:'返回本土 · 图像回传', short:'图像回传',
+    sub:'返回中国大陆上空 → 过境建链 → 数传下传',
     cap:'L2 星上辅助', dur:22, motion:'垂直数据流 · 链路脉冲 · 进度累积',
     phases:[
       { k:'数据就绪', at:.00, items:['图像压缩打包','附加辅助数据（时刻 / 姿态 / 参数）','存入星上固态存储器'] },
@@ -766,6 +818,7 @@ function hideAll(){
   stationOrient();
   targetMark.position.copy(llToVec(TGT_LAT, TGT_LON, R_EARTH*1.012));
   swayBandReset();
+  introKill();                  // 切场景：收起任务说明卡
   payloadKill();                // 切场景：观测窗直接归零，不留淡出残影
   payReset();
   capPanel(false);              // 载荷能力清单也需关闭（否则切场景后残留）
@@ -1442,6 +1495,50 @@ function payReset(){
   const b = GROUPS[gi] && document.querySelector('.gbtn[data-g="'+GROUPS[gi].id+'"]');
   if (b) b.classList.remove('done','pulse');       // 重播时清除完成标记
 }
+/* ---- 任务说明卡：进入一级任务时先冻结动画 3s，再开始第一步 ---- */
+const INTRO_MS = 3000;
+const INTROS = {
+  moon: {
+    tag:'一级任务 · 月亮拍摄任务',
+    ttl:'软件赋能月球拍摄业务',
+    txt:'基于软件定义卫星的能力，我们对月球拍摄业务进行了微服务改造，实现软件赋能卫星。'
+  },
+  new: {
+    tag:'一级任务 · 新拍摄任务',
+    ttl:'动态增加新业务能力',
+    txt:'基于软件定义卫星天然具备的软件动态扩展能力，现展示一下动态增加新业务能力。'
+  }
+};
+let introHold = false, introTok = 0, introTimer = 0, introRAF = 0;
+function showIntro(gid){
+  const el = $('introCard'), cfg = INTROS[gid];
+  if (!el || !cfg) return;
+  const tok = ++introTok;
+  clearTimeout(introTimer); cancelAnimationFrame(introRAF);
+  $('introTag').textContent = cfg.tag;
+  $('introTtl').textContent = cfg.ttl;
+  $('introTxt').textContent = cfg.txt;
+  $('introBar').style.width = '0%';
+  introHold = true;                                  // 冻结主动画（不动用户的播放状态）
+  el.classList.add('on');
+  const t0 = performance.now();
+  (function tick(){
+    const k = Math.min((performance.now()-t0)/INTRO_MS, 1);
+    $('introBar').style.width = (k*100).toFixed(1)+'%';
+    if (k < 1) introRAF = requestAnimationFrame(tick);
+  })();
+  introTimer = setTimeout(()=>{
+    if (tok !== introTok) return;                    // 已被切换/重入作废
+    el.classList.remove('on');
+    introHold = false;                               // 收起说明卡 → 从第一步开始播放
+  }, INTRO_MS);
+}
+function introKill(){                                // 切场景时立即收起，不留悬浮卡
+  introTok++; clearTimeout(introTimer); cancelAnimationFrame(introRAF);
+  introHold = false;
+  const el = $('introCard'); if (el) el.classList.remove('on');
+}
+
 /* 一级任务（分组）完成：该分组按钮转绿 + ✓ + 脉冲一次 */
 function markGroupDone(){
   const gi = GROUPS.findIndex(g => g.scenes.indexOf(cur) >= 0);
@@ -1711,7 +1808,7 @@ function animate(){
   if (!ready) return;
 
   const sc = SCENES[cur-1];
-  if (playing && !payHold()){                      // 观测窗展示期间冻结动画
+  if (playing && !payHold() && !introHold){        // 观测窗/说明卡展示期间冻结动画
     prog += dt*speed/sc.dur;
     if (prog >= 1){ prog = 0; panelReset(sc); payReset(); }   // 循环 → 任务栏与门控一并重置
   }
@@ -1745,13 +1842,14 @@ function boot(){
     const gb = document.createElement('button');
     gb.className = 'gbtn'; gb.dataset.g = g.id;
     gb.textContent = g.name;
-    gb.onclick = () => { setScene(g.scenes[0]); };   // 点击分组跳到该组首个场景
+    gb.onclick = () => { setScene(g.scenes[0]); showIntro(g.id); };   // 进入任务：先暂停看说明卡
     row.appendChild(gb);
     g.scenes.forEach(id => {
       const sc = SCENES[id-1];
       const b = document.createElement('button');
       b.className = 'tab'; b.dataset.n = sc.id;
-      b.innerHTML = '<span class="n">0'+sc.id+'</span>'+sc.name;
+      b.innerHTML = '<span class="n">0'+sc.id+'</span>'+(sc.short||sc.name);
+      b.title = sc.name;                             // 悬停显示完整任务名
       b.onclick = () => setScene(sc.id);
       row.appendChild(b);
     });
