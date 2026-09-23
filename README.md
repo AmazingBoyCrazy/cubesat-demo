@@ -463,3 +463,12 @@
 | `chapter_ids.json` | v1 章节块 ID 快照 |
 | `feishu_check.json` | v1 写入后的飞书快照 |
 | `fix1.xml` / `fix2.xml` | v1 的 emoji 修正补丁（历史） |
+| `demo/index.html` | **演示主页面**（顶栏任务栏 + 3D 场景 + 右侧任务分解面板） |
+| `demo/clean.html` | **纯净版**（无右侧面板，演示区占满整宽；仅保留顶栏与画面内提示文字） |
+| `demo/vendor/` + `demo/assets/` | Three.js r128 与 NASA 真实贴图（本地化，无 CDN 依赖） |
+
+> **两个演示页面**：`demo/index.html` 用于完整讲解（右侧逐条弹出「自感知→自决策→自执行」步骤框）；
+> `demo/clean.html` 用于纯视觉展示或录制（只留动画和画面提示，避免右侧文字干扰）。
+> 两者共用同一套 3D 场景与门控逻辑，仅 UI 层不同。本地预览：在 `demo/` 目录下执行
+> `python -m http.server 8123`，然后访问 `http://127.0.0.1:8123/`（完整版）
+> 或 `http://127.0.0.1:8123/clean.html`（纯净版）。
