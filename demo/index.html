@@ -371,7 +371,7 @@
     <div class="legend">
       <span style="color:#6fe3a1">已完成</span>
       <span style="color:#57d6ff">进行中</span>
-      <span style="color:#7a8aa5">空格暂停 / 1-5 切场景</span>
+      <span style="color:#7a8aa5">空格暂停 / 1-6 切场景</span>
     </div>
   </aside>
 </main>
@@ -421,6 +421,12 @@ const ORBIT_INC = 48*DEG;          // 轨道倾角：使星下点纬度可达 ±
 const MOON_R   = 75;
 const MOON_POS = V(315, 117, -780);  // 月球置于画面【右侧】（原版在左，构图失衡）
 const SUN_DIR  = V(0.86, 0.30, 0.42).normalize();
+
+/* 临边观测（limb）：观测视线与大气层相切掠过，取切线方向的散射/吸收信号。
+   示意比例：轨道半径与"切线高度"都做了便于观看的夸张（真实切高约 100 km，
+   真实轨道半径仅为地球半径的 1.1 倍）。本段为独立动画，不与前后场景衔接。 */
+const LIMB_RS = 150;                  // 临边观测时的轨道半径（示意放大）
+const LIMB_RT = R_EARTH*1.18;         // 切点距地心 → 切线高度 18 单位（示意放大）
 
 /* 地面站（中国大陆 · 北京，示意） */
 const GS_LAT = 40.4, GS_LON = 116.8;
@@ -473,7 +479,20 @@ const SCENES = [
     drive: driveMoon
   },
   {
-    id:2, name:'载荷算法上注 · 新增能力', short:'载荷算法上注',
+    id:2, name:'临边观测 · 大气廓线', short:'临边观测', standalone:true,
+    sub:'转入切线指向 → 建立临边视线 → 层析扫描 → 廓线反演',
+    cap:'L2 星上辅助', dur:24, motion:'总览侧视 · 切线视线 · 大气辉光',
+    phases:[
+      { k:'指令接收', at:.00, items:['地面站上注任务：临边观测（大气成分廓线）','观测几何：视线与地球大气层相切掠过'] },
+      { k:'自感知',   at:.16, items:['<span class="svc">GPS</span> 精确定轨：确定卫星位置','<span class="svc">太敏</span> 测太阳矢量 → 确定散射几何','读姿态与角速度'] },
+      { k:'自决策',   at:.34, items:['解算切线指向姿态（视线与大气层相切）','确定切线高度与观测时段','评估太阳规避角与杂光风险'] },
+      { k:'自执行',   at:.52, items:['<span class="svc">飞轮</span> 机动至切线观测姿态','建立临边视线：切点掠过大气层顶部','<span class="svc">大气光谱仪</span> 层析扫描成像','多谱段采集大气散射光谱'] },
+      { k:'数据回传', at:.82, items:['反演大气成分垂直廓线','等待地面站可见窗口下传'] },
+    ],
+    drive: driveLimb
+  },
+  {
+    id:3, name:'载荷算法上注 · 新增能力', short:'载荷算法上注',
     sub:'上注算法包 → 校验 → 装订入库 → 新增飞机识别能力',
     cap:'L3 星上自主（软件定义核心）', dur:22, motion:'上行数据流 · 能力清单逐项点亮',
     phases:[
@@ -485,7 +504,7 @@ const SCENES = [
     drive: driveUpload
   },
   {
-    id:3, name:'赴观测途中 · 遇废弃卫星自主规避', short:'自主规避',
+    id:4, name:'赴观测途中 · 遇废弃卫星自主规避', short:'自主规避',
     sub:'接新指令 → 途中识别 → 计算 → 变轨规避 → 恢复',
     cap:'L3 星上自主（前沿）', dur:26, motion:'急促变焦 · 轨迹急偏 · 告警脉冲',
     phases:[
@@ -499,7 +518,7 @@ const SCENES = [
     drive: driveAvoid
   },
   {
-    id:4, name:'拍摄美国上空标记物', short:'对地成像',
+    id:5, name:'拍摄美国上空标记物', short:'对地成像',
     sub:'过境窗口 · 对地成像 · 飞机目标识别',
     cap:'L2 星上辅助', dur:24, motion:'高空俯冲 · 地球自转定位 · 地面横扫',
     phases:[
@@ -512,7 +531,7 @@ const SCENES = [
     drive: driveGround
   },
   {
-    id:5, name:'返回本土 · 图像回传', short:'图像回传',
+    id:6, name:'返回本土 · 图像回传', short:'图像回传',
     sub:'返回中国大陆上空 → 过境建链 → 数传下传',
     cap:'L2 星上辅助', dur:22, motion:'垂直数据流 · 链路脉冲 · 进度累积',
     phases:[
@@ -528,8 +547,8 @@ const SCENES = [
 
 /* 一级功能分组：把五个场景归为两大功能块 */
 const GROUPS = [
-  { id:'moon', name:'月亮拍摄任务', scenes:[1] },
-  { id:'new',  name:'新拍摄任务',   scenes:[2,3,4,5] },
+  { id:'moon', name:'月亮拍摄任务', scenes:[1,2] },
+  { id:'new',  name:'新拍摄任务',   scenes:[3,4,5,6] },
 ];
 
 /* =========================================================================
@@ -539,7 +558,9 @@ let renderer, scene, camera, sun, earthGrp, earthMesh, cloudMesh, atmMesh,
     moonMesh, satGrp, satLens, satFlame, orbitLine, orbitMat,
     debrisMesh, debrisTrail, satTrail, linkBeam, packets=[], packetGrp,
     swathBand, targetMark, gsGrp, gsRing=[], gsBeam,
-    satellite=null, moonImg=null, earthImg=null, orbitRNow=ORBIT_R;
+    satellite=null, moonImg=null, earthImg=null, orbitRNow=ORBIT_R,
+    sunGrp=null, limbGrp=null, limbSight=null, limbHLine=null, limbHDot=null,
+    limbRayGrp=null, limbLbl=null, limbStars=null;
 
 function initThree(){
   const cv = document.getElementById('gl');
@@ -594,6 +615,34 @@ function initThree(){
   moonMesh.material.map.encoding = THREE.sRGBEncoding;
   moonMesh.position.copy(MOON_POS);
   scene.add(moonMesh);
+
+  /* ---- 临边观测（limb）专用对象 ---- */
+  sunGrp = makeSun(); sunGrp.visible = false; scene.add(sunGrp);
+
+  limbGrp = new THREE.Group(); limbGrp.visible = false; scene.add(limbGrp);
+
+  const mkLine = (color, op) => new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([V(0,0,0), V(0,0,0)]),
+    new THREE.LineBasicMaterial({ color, transparent:true, opacity:op,
+      blending:THREE.AdditiveBlending, depthWrite:false }));
+  limbSight = mkLine(0x7fd4ff, .95);              // 观测视线（与大气相切）
+  limbHLine = mkLine(0xffd166, .85);              // 切线高度
+  limbGrp.add(limbSight); limbGrp.add(limbHLine);
+
+  limbHDot = new THREE.Mesh(new THREE.SphereGeometry(1.7, 10, 8),
+    new THREE.MeshBasicMaterial({ color:0xffd166, transparent:true, opacity:.95,
+      blending:THREE.AdditiveBlending, depthWrite:false }));
+  limbGrp.add(limbHDot);
+
+  limbRayGrp = new THREE.Group(); limbGrp.add(limbRayGrp);
+  for (let i=0;i<4;i++) limbRayGrp.add(mkLine(0xff9d5c, .5));   // 太阳平行光线
+
+  limbLbl = {
+    ray:   makeTextSprite('太阳辐射', '#ffb066', 11),
+    sight: makeTextSprite('观测视线（与大气相切）', '#8fd8ff', 11),
+    hgt:   makeTextSprite('切线高度', '#ffd166', 10),
+  };
+  Object.keys(limbLbl).forEach(k => limbGrp.add(limbLbl[k]));
 
   satellite = buildSatellite(); scene.add(satellite);
   satGrp = satellite;
@@ -794,6 +843,73 @@ function onResize(){
   camera.aspect = w/h; camera.updateProjectionMatrix();
 }
 
+/* ---- 临边观测（limb）辅助 ---- */
+/* 沿线段设置两点（动态更新视线 / 切线高度） */
+function setLine2(line, a, b){
+  const pa = line.geometry.attributes.position;
+  pa.setXYZ(0, a.x, a.y, a.z); pa.setXYZ(1, b.x, b.y, b.z);
+  pa.needsUpdate = true; line.geometry.computeBoundingSphere();
+}
+/* 射线与球求交（单位方向 dir，取近端交点）；无交点返回 null */
+function rayToSphere(A, dir, R){
+  const b = 2*A.dot(dir), cc = A.lengthSq() - R*R, disc = b*b - 4*cc;
+  if (disc < 0) return null;
+  const t0 = (-b - Math.sqrt(disc)) / 2;
+  return t0 > 0 ? A.clone().addScaledVector(dir, t0) : null;
+}
+/* 临边切线几何：从卫星 P 向半径 rt 的球作切线，返回切点与视线方向。
+   d 取在轨道面内（⊥ P），保证视线、切点、轨道环共面 → 侧视时视线水平 */
+function limbGeometry(P, rt, nOrb){
+  const rs = P.length(), Ph = P.clone().normalize();
+  const th = Math.acos(clamp(rt/rs, -1, 1));           // 切点方向与 P 的夹角
+  const d  = new THREE.Vector3().crossVectors(nOrb, Ph).normalize();
+  const T  = Ph.clone().multiplyScalar(Math.cos(th))
+               .addScaledVector(d, -Math.sin(th)).multiplyScalar(rt);
+  return { rs, Ph, th, d, T, sightDir:T.clone().sub(P).normalize() };
+}
+/* 三维场景内的文字标注（精灵，始终朝向相机） */
+function makeTextSprite(text, color, hUnits){
+  const fs = 48, pad = 13;
+  const cv = document.createElement('canvas');
+  let c = cv.getContext('2d');
+  c.font = '700 '+fs+'px "Microsoft YaHei","PingFang SC",sans-serif';
+  cv.width = Math.ceil(c.measureText(text).width) + pad*2;
+  cv.height = Math.ceil(fs*1.55);
+  c = cv.getContext('2d');                       // 尺寸变更后需重设样式
+  c.font = '700 '+fs+'px "Microsoft YaHei","PingFang SC",sans-serif';
+  c.textBaseline = 'middle';
+  c.fillStyle = 'rgba(6,12,22,.76)'; c.fillRect(0,0,cv.width,cv.height);
+  c.strokeStyle = 'rgba(120,190,255,.45)'; c.lineWidth = 2;
+  c.strokeRect(1,1,cv.width-2,cv.height-2);
+  c.fillStyle = color || '#ffd166';
+  c.fillText(text, pad, cv.height/2 + 1);
+  const tex = new THREE.CanvasTexture(cv);
+  if (THREE.sRGBEncoding !== undefined) tex.encoding = THREE.sRGBEncoding;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true,
+    depthWrite:false, depthTest:false }));
+  const h = hUnits || 11;
+  sp.scale.set(h * cv.width / cv.height, h, 1);
+  return sp;
+}
+/* 太阳（球体 + 径向光晕精灵） */
+function makeSun(){
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(15, 24, 16),
+    new THREE.MeshBasicMaterial({ color:0xffe9a3 })));
+  const S = 256, cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const c = cv.getContext('2d');
+  const gr = c.createRadialGradient(S/2,S/2,8, S/2,S/2,S/2);
+  gr.addColorStop(0,'rgba(255,244,190,1)');
+  gr.addColorStop(.28,'rgba(255,214,120,.42)');
+  gr.addColorStop(1,'rgba(255,190,70,0)');
+  c.fillStyle = gr; c.fillRect(0,0,S,S);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(cv),
+    transparent:true, blending:THREE.AdditiveBlending, depthWrite:false }));
+  sp.scale.set(105,105,1); g.add(sp);
+  return g;
+}
+
 /* =========================================================================
    复位（场景切换时清场）
    ========================================================================= */
@@ -813,6 +929,10 @@ function hideAll(){
   stationOrient();
   targetMark.position.copy(llToVec(TGT_LAT, TGT_LON, R_EARTH*1.012));
   swayBandReset();
+  if (sunGrp)  sunGrp.visible  = false;
+  if (limbGrp) limbGrp.visible = false;
+  moonMesh.visible = true;      // 临边观测段会隐藏月球，切场景时恢复
+  camera.up.set(0,1,0);         // 临边观测段会倾斜相机基准，切场景时恢复
   introKill();                  // 切场景：收起任务说明卡
   payloadKill();                // 切场景：观测窗直接归零，不留淡出残影
   payReset();
@@ -1009,6 +1129,139 @@ function driveMoon(p, t, dt){
   moonMesh.rotation.y += dt*.02;
   payloadFollow(sp);                       // 小窗跟随卫星
   camera.position.copy(camPos); camera.lookAt(look);
+}
+
+/* =========================================================================
+   场景 2 · 临边观测（limb）：视线与大气层相切掠过
+   独立动画，不与前后场景衔接。主画面给「总览侧视」观测几何
+   （太阳 → 大气层切线视线 → 卫星），观测窗给卫星视角的临边画面。
+   几何要点：切点 T 在轨道面内，视线、切点、轨道环共面 →
+             相机沿轨道面法向侧视，视线在画面上正好水平，地球在下方。
+   ========================================================================= */
+function driveLimb(p, t, dt){
+  gsGrp.visible = false;
+  moonMesh.visible = false;                 // 本段不需要月球
+  sunGrp.visible = true;
+  limbGrp.visible = true;
+
+  const RS = LIMB_RS, RT = LIMB_RT;
+
+  /* ---- 卫星沿示意轨道缓行（切线几何随位置缓慢变化） ---- */
+  const ang = lerp(40, 76, seg(p, 0, 1, 'inOutSine'));
+  const sp  = orbitPos(ang, RS);
+  satellite.position.copy(sp);
+  setOrbitRadius(RS);
+  orbitLine.visible = true;                 // 相机正对轨道面 → 轨道环呈正圆
+
+  /* ---- 切线几何（含相机基准的定向修正） ---- */
+  const nOrb = new THREE.Vector3().crossVectors(sp, orbitVel(ang, RS)).normalize();
+  const G = limbGeometry(sp, RT, nOrb);
+  const T = G.T, sightDir = G.sightDir;
+  /* "上"必须背离地心 → 地球落在画面下方；几何上 up 恒等于 -T/rt，
+     所以这里翻转 up 本身（改 nOrb 无效：up 会随之同向翻转） */
+  const up = new THREE.Vector3().crossVectors(sightDir, nOrb).normalize();
+  if (up.dot(G.Ph) < 0) up.negate();
+  const Lgt = sp.distanceTo(T);             // 视线长度
+  const surf = T.clone().normalize().multiplyScalar(R_EARTH);   // 切点正下方地表点
+
+  /* ---- 姿态机动：载荷(+Z)由地心方向转向切线方向 ---- */
+  const aim = seg(p, .18, .46, 'inOutCubic');
+  const lookDir = sp.clone().normalize().lerp(sightDir, aim).normalize();
+  satellite.lookAt(sp.clone().addScaledVector(lookDir, 300));
+  if (satFlame) satFlame.visible = false;
+  satLens.material.color.setHex(aim > .97 ? 0x7fd4ff : 0x6fe3a1);
+
+  /* ---- 太阳：置于画面左上（前向散射几何） ---- */
+  const sunDir = up.clone().multiplyScalar(.60).addScaledVector(sightDir, .80).normalize();
+  sunGrp.position.copy(sunDir).multiplyScalar(178);
+
+  /* ---- 观测视线（相机 → 切点）与切线高度 ---- */
+  const rv = seg(p, .30, .56, 'inOutCubic');            // 视线浮现
+  limbSight.visible = rv > .01; limbSight.material.opacity = .95*rv;
+  setLine2(limbSight, sp, T);
+  const hv = seg(p, .40, .66, 'outCubic');              // 切线高度浮现
+  limbHLine.visible = limbHDot.visible = hv > .01;
+  limbHLine.material.opacity = .85*hv;
+  limbHDot.material.opacity = .95*hv;
+  setLine2(limbHLine, surf, T);
+  limbHDot.position.copy(T);
+  limbHDot.scale.setScalar(.6 + .4*Math.sin(t*3.2));
+
+  /* ---- 太阳平行光线：从左上射向大气层 ---- */
+  const qd = new THREE.Vector3().crossVectors(nOrb, sunDir).normalize();
+  const rayK = seg(p, .44, .68, 'inOutCubic');
+  limbRayGrp.children.forEach((ray, i) => {
+    const off = (i - 1.5) * 15;
+    const A = qd.clone().multiplyScalar(off).addScaledVector(sunDir, 320);
+    const hit = rayToSphere(A, sunDir.clone().negate(), RT);
+    if (!hit || rayK < .01){ ray.visible = false; return; }
+    ray.visible = true; ray.material.opacity = .5*rayK;
+    /* 光线画到"射入大气"处，末端留一点余量 */
+    const end = hit.clone().addScaledVector(sunDir, 3);
+    const start = hit.clone().addScaledVector(sunDir, 118);
+    setLine2(ray, start, end);
+  });
+
+  /* ---- 三维标注 ---- */
+  const lv = seg(p, .62, .80, 'outCubic');
+  limbLbl.ray.visible = limbLbl.sight.visible = limbLbl.hgt.visible = lv > .01;
+  Object.keys(limbLbl).forEach(k => { limbLbl[k].material.opacity = lv; });
+  limbLbl.ray.position.copy(
+    T.clone().addScaledVector(sunDir, 82).addScaledVector(qd, 24));
+  limbLbl.sight.position.copy(
+    sp.clone().lerp(T, .46).addScaledVector(up, 17));
+  limbLbl.hgt.position.copy(
+    surf.clone().lerp(T, .5).addScaledVector(qd, -19));
+
+  /* ---- 相机：沿轨道面法向侧视，视线水平、地球在下 ---- */
+  const camTarget = sp.clone().lerp(T, .52).addScaledVector(up, 26);
+  const dist = lerp(520, 430, seg(p, .10, .62, 'inOutSine'));
+  camera.up.copy(up);
+  camera.position.copy(camTarget).addScaledVector(nOrb, dist);
+  camera.lookAt(camTarget);
+
+  /* ---- HUD / 字幕 ---- */
+  const err = lerp(6.5, .04, seg(p, .26, .60, 'outCubic'));
+  hud('A', '指向误差', err.toFixed(2)+'°', aim < .99 ? '目标：切线方向' : '已稳定指向切点 ✓');
+  hudTone(err > .5 ? 'amber' : 'green');
+  hud('B', '切线高度', '约 100 km',
+      '随地球边缘观测 · 视线长度 ' + (Lgt*12.4).toFixed(0) + ' km');
+  hudBTone('');
+  reticle(false); warn(false);
+
+  /* ---- 观测窗（卫星视角临边画面） ---- */
+  const inImg = p > .56 && p < .90;
+  if (inImg){
+    payload(payGate(p > .60), {
+      mode:'临边观测 · 大气廓线',
+      det:'识别到 <b>大气层</b> · 切线高度 100 km',
+      conf:(0.90 + .06*seg(p,.60,.86,'outCubic')).toFixed(2),
+      meta:'多谱段散射光谱 · 0.4~2.4 μm', src:'limb',
+      frames: Math.round(seg(p,.64,.88,'outCubic')*32)
+    });
+  } else {
+    payload(false);
+  }
+
+  /* ---- 分阶段叙事 ---- */
+  if (p < .18){
+    banner(1,'指令接收');
+    sub('指令接收','地面站上注任务：临边观测（大气成分垂直廓线）→ 视线与大气层相切掠过');
+  } else if (p < .40){
+    banner(2,'自感知');
+    sub('自感知', p < .30 ? 'GPS 精确定轨 · 星敏+陀螺读姿态'
+                          : '太敏测太阳矢量 → 确定散射几何，判断临边是否受晒');
+  } else if (p < .56){
+    banner(3,'自决策');
+    sub('自决策','解算切线指向姿态 · 确定切线高度与观测时段 · 评估太阳规避角与杂光风险');
+  } else if (p < .80){
+    banner(4,'自执行 · 临边扫描');
+    sub('自执行', p < .66 ? '飞轮机动至切线观测姿态 → 建立临边视线'
+                          : '大气光谱仪层析扫描 → 多谱段采集大气散射光谱');
+  } else {
+    banner(5,'数据回传');
+    sub('数据回传','反演大气成分垂直廓线 → 等待地面站可见窗口下传');
+  }
 }
 
 /* =========================================================================
@@ -1673,6 +1926,61 @@ function drawPayload(info){
     for (let x=0;x<W;x+=W/9){ c.beginPath(); c.moveTo(x,0); c.lineTo(x,H); c.stroke(); }
     for (let y=0;y<H;y+=H/7){ c.beginPath(); c.moveTo(0,y); c.lineTo(W,y); c.stroke(); }
     detectBox(c, W*0.30, H*0.28, W*0.40, H*0.44, '地标匹配', info.conf);
+  } else if (info.src === 'limb'){
+    /* 卫星视角：临边观测画面（视线切过大气层顶部） */
+    const cxp = W*0.5, cyp = H*1.44, gr = H*1.02;   // 地球弧：圆心在画面下方 → 地平线约在 42% 高度
+    if (!limbStars){
+      limbStars = [];
+      for (let i=0;i<96;i++)
+        limbStars.push({ x:Math.random(), y:Math.random(), r:Math.random(), a:Math.random() });
+    }
+    /* 深空星点（只画在地平线以上） */
+    c.fillStyle = '#04070d'; c.fillRect(0, 0, W, cyp-gr);
+    limbStars.forEach(st => {
+      if (st.y > 0.40) return;
+      c.fillStyle = 'rgba(207,224,255,' + (0.20 + st.a*0.55).toFixed(2) + ')';
+      c.beginPath(); c.arc(st.x*W, st.y*H, 0.8 + st.r*1.1, 0, 7); c.fill();
+    });
+    /* 地球本体：暗面渐变 + 极弱地表纹理暗示 */
+    c.save();
+    c.beginPath(); c.arc(cxp, cyp, gr, 0, 7); c.clip();
+    const eg = c.createLinearGradient(0, cyp-gr, 0, cyp-gr + H*0.58);
+    eg.addColorStop(0,'#17425f'); eg.addColorStop(.42,'#0b1c2e'); eg.addColorStop(1,'#050a12');
+    c.fillStyle = eg; c.fillRect(0, cyp-gr-4, W, gr+8);
+    c.fillStyle = 'rgba(72,132,172,.10)';
+    for (let i=0;i<24;i++){
+      const st = limbStars[i];
+      c.beginPath();
+      c.ellipse(st.x*W, cyp-gr + st.a*H*0.44, 26+st.r*80, 7+st.a*16, 0, 0, 7);
+      c.fill();
+    }
+    c.restore();
+    /* 大气层辉光：同心弧叠加，越贴地平线越亮（临边观测的观测对象） */
+    for (let i=0;i<=28;i++){
+      const k = i/28, rr = gr + k*H*0.105;
+      c.strokeStyle = 'rgba(126,200,255,' + (0.34*Math.pow(1-k,2.2)).toFixed(3) + ')';
+      c.lineWidth = Math.max(1, H*0.011);
+      c.beginPath(); c.arc(cxp, cyp, rr, Math.PI*1.02, Math.PI*1.98); c.stroke();
+    }
+    /* 地平线亮边 */
+    c.strokeStyle = 'rgba(198,232,255,.55)'; c.lineWidth = Math.max(1.5, H*0.006);
+    c.beginPath(); c.arc(cxp, cyp, gr + H*0.006, Math.PI*1.02, Math.PI*1.98); c.stroke();
+    /* 太阳前向散射光晕（右上，视场内强杂光源） */
+    const lsx = W*0.88, lsy = H*0.09;
+    const sg3 = c.createRadialGradient(lsx, lsy, 2, lsx, lsy, H*0.50);
+    sg3.addColorStop(0,'rgba(255,242,196,.90)');
+    sg3.addColorStop(.22,'rgba(255,210,128,.20)');
+    sg3.addColorStop(1,'rgba(255,190,80,0)');
+    c.fillStyle = sg3; c.fillRect(0, 0, W, H);
+    c.fillStyle = 'rgba(255,251,226,.97)';
+    c.beginPath(); c.arc(lsx, lsy, H*0.024, 0, 7); c.fill();
+    /* 切线剖面取样（竖直扫描线） */
+    c.strokeStyle = 'rgba(111,227,161,.5)'; c.lineWidth = 1.4; c.setLineDash([5,6]);
+    c.beginPath(); c.moveTo(W*0.5, H*0.16); c.lineTo(W*0.5, H*0.44); c.stroke();
+    c.setLineDash([]);
+    detectBox(c, W*0.18, H*0.28, W*0.64, H*0.20, '大气廓线', info.conf);
+    c.fillStyle = 'rgba(255,209,102,.85)'; c.font = '12px Consolas, monospace';
+    c.fillText('ALGO: limb-scan（临边层析）', 12, H-34);
   }
   /* 通用叠加：时间戳与帧号 */
   c.fillStyle='rgba(140,200,255,.72)'; c.font='13px Consolas, monospace';
@@ -1711,7 +2019,7 @@ function buildPanel(sc){
   $('pSub').textContent = sc.sub;
   $('pCap').textContent = sc.cap;
   $('pBody').innerHTML = '';
-  if (sc.id === 4){
+  if (sc.id === 6){
     $('pBody').insertAdjacentHTML('beforeend',
       '<div class="dlbar"><div class="hd"><span>数传下传进度</span><b id="dlTxt">0%</b></div>'+
       '<div class="tr"><i id="dlBar2"></i></div></div>');
@@ -1720,7 +2028,7 @@ function buildPanel(sc){
 }
 function panelReset(sc){
   $('pBody').innerHTML = '';
-  if (sc.id === 4){
+  if (sc.id === 6){
     $('pBody').insertAdjacentHTML('beforeend',
       '<div class="dlbar"><div class="hd"><span>数传下传进度</span><b id="dlTxt">0%</b></div>'+
       '<div class="tr"><i id="dlBar2"></i></div></div>');
