@@ -371,7 +371,7 @@
     <div class="legend">
       <span style="color:#6fe3a1">已完成</span>
       <span style="color:#57d6ff">进行中</span>
-      <span style="color:#7a8aa5">空格暂停 / 1-7 切场景</span>
+      <span style="color:#7a8aa5">空格暂停 / 1-8 切场景</span>
     </div>
   </aside>
 </main>
@@ -433,6 +433,13 @@ const LIMB_RT = R_EARTH*1.18;         // 切点距地心 → 切线高度 18 单
    且在本场景轨道相位下距地心方向约 110°、离地球边缘 86°（彻底避开地气光）。 */
 const M31_DIR = V(-0.341, 0.916, -0.213).normalize();
 const M31_POS = M31_DIR.clone().multiplyScalar(5200);
+
+/* 空间目标：北斗 MEO 导航卫星（示意几何）
+   真实几何：轨道高度约 21500 km，从 550 km 的本星看距离约 21000 km；
+   卫星本体约 3 m → 视张角 0.03 角秒，远小于相机分辨率（100 mm 口径约 1.4 角秒）。
+   结论：永远是【点目标】—— 能探测、能跟踪、能测光，但看不出形状。 */
+const BD_DIR = V(-0.45, 0.80, 0.40).normalize();
+const BD_POS = BD_DIR.clone().multiplyScalar(560);
 
 /* 地面站（中国大陆 · 北京，示意） */
 const GS_LAT = 40.4, GS_LON = 116.8;
@@ -511,7 +518,21 @@ const SCENES = [
     drive: driveM31
   },
   {
-    id:4, name:'载荷算法上注 · 新增能力', short:'载荷算法上注',
+    id:4, name:'空间目标观测 · 北斗卫星', short:'北斗观测', standalone:true,
+    sub:'姿态机动 → 跟踪指向 → 长积分成像 → 点目标检测 → 光度测量',
+    cap:'L2 星上辅助（点目标测量 —— 拍不出形状）', dur:24,
+    motion:'跟踪指向 · 星场缓移 · 光度曲线累积',
+    phases:[
+      { k:'指令接收', at:.00, items:['地面站上注任务：对北斗 MEO 导航卫星进行光学观测','编目合作目标 · 轨道高度约 21500 km'] },
+      { k:'自感知',   at:.16, items:['<span class="svc">GPS</span> 定轨：确定本星位置','<span class="svc">星敏+陀螺</span> 读姿态与角速度','查目标两行根数（TLE）预报方位','计算可见窗口与相位角'] },
+      { k:'自决策',   at:.34, items:['解算指向姿态（视线指向目标）','预测方位角速度（约 0.01°/s，远慢于 LEO 目标）','评估亮度：视星等约 12.6，需长积分','排定曝光序列：2 s × 32 帧'] },
+      { k:'自执行',   at:.52, items:['<span class="svc">飞轮</span> 机动至跟踪指向','<span class="svc">对天光学载荷</span> 长积分成像','<span class="svc">点目标检测</span>：提取目标像元与信噪比','<b>视张角仅 0.03″ → 未分辨</b>，形状不可得','<span class="svc">光度测量</span>：记录亮度随时间变化'] },
+      { k:'数据回传', at:.82, items:['方位 / 亮度序列打包（用于编目更新与定轨）','等待地面站可见窗口下传'] },
+    ],
+    drive: driveBeidou
+  },
+  {
+    id:5, name:'载荷算法上注 · 新增能力', short:'载荷算法上注',
     sub:'上注算法包 → 校验 → 装订入库 → 新增飞机识别能力',
     cap:'L3 星上自主（软件定义核心）', dur:22, motion:'上行数据流 · 能力清单逐项点亮',
     phases:[
@@ -523,7 +544,7 @@ const SCENES = [
     drive: driveUpload
   },
   {
-    id:5, name:'赴观测途中 · 遇废弃卫星自主规避', short:'自主规避',
+    id:6, name:'赴观测途中 · 遇废弃卫星自主规避', short:'自主规避',
     sub:'接新指令 → 途中识别 → 计算 → 变轨规避 → 恢复',
     cap:'L3 星上自主（前沿）', dur:26, motion:'急促变焦 · 轨迹急偏 · 告警脉冲',
     phases:[
@@ -537,7 +558,7 @@ const SCENES = [
     drive: driveAvoid
   },
   {
-    id:6, name:'拍摄美国上空标记物', short:'对地成像',
+    id:7, name:'拍摄美国上空标记物', short:'对地成像',
     sub:'过境窗口 · 对地成像 · 飞机目标识别',
     cap:'L2 星上辅助', dur:24, motion:'高空俯冲 · 地球自转定位 · 地面横扫',
     phases:[
@@ -550,7 +571,7 @@ const SCENES = [
     drive: driveGround
   },
   {
-    id:7, name:'返回本土 · 图像回传', short:'图像回传', dlbar:true,
+    id:8, name:'返回本土 · 图像回传', short:'图像回传', dlbar:true,
     sub:'返回中国大陆上空 → 过境建链 → 数传下传',
     cap:'L2 星上辅助', dur:22, motion:'垂直数据流 · 链路脉冲 · 进度累积',
     phases:[
@@ -566,8 +587,8 @@ const SCENES = [
 
 /* 一级功能分组：把五个场景归为两大功能块 */
 const GROUPS = [
-  { id:'moon', name:'月亮拍摄任务', scenes:[1,2,3] },
-  { id:'new',  name:'新拍摄任务',   scenes:[4,5,6,7] },
+  { id:'moon', name:'月亮拍摄任务', scenes:[1,2,3,4] },
+  { id:'new',  name:'新拍摄任务',   scenes:[5,6,7,8] },
 ];
 
 /* =========================================================================
@@ -580,7 +601,8 @@ let renderer, scene, camera, sun, earthGrp, earthMesh, cloudMesh, atmMesh,
     satellite=null, moonImg=null, earthImg=null, orbitRNow=ORBIT_R,
     sunGrp=null, limbGrp=null, limbSight=null, limbHLine=null, limbHDot=null,
     limbRayGrp=null, limbLbl=null, limbStars=null,
-    m31Grp=null, m31Sight=null, m31Lbl=null, m31T0=0;
+    m31Grp=null, m31Sight=null, m31Lbl=null, m31T0=0,
+    bdGrp=null, bdBody=null, bdSight=null, bdLbl=null, bdT0=0;
 
 function initThree(){
   const cv = document.getElementById('gl');
@@ -635,6 +657,22 @@ function initThree(){
   moonMesh.material.map.encoding = THREE.sRGBEncoding;
   moonMesh.position.copy(MOON_POS);
   scene.add(moonMesh);
+
+  /* ---- 空间目标：北斗卫星 ---- */
+  bdGrp = new THREE.Group(); bdGrp.visible = false; scene.add(bdGrp);
+  bdBody = buildBeiDou();
+  bdBody.scale.setScalar(1.9);              // 远景可辨识（示意比例）
+  bdBody.position.copy(BD_POS);
+  bdBody.lookAt(V(0,0,0));                  // 对地定向（天线朝地球）
+  bdGrp.add(bdBody);
+  bdSight = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([V(0,0,0), V(0,0,0)]),
+    new THREE.LineBasicMaterial({ color:0x9fd0ff, transparent:true, opacity:.5,
+      blending:THREE.AdditiveBlending, depthWrite:false }));
+  bdGrp.add(bdSight);
+  bdLbl = makeTextSprite('北斗 MEO 卫星（示意）', '#9fd0ff', 13);
+  bdLbl.position.copy(BD_POS);
+  bdGrp.add(bdLbl);
 
   /* ---- 深空目标 M31 专用对象 ---- */
   m31Grp = new THREE.Group(); m31Grp.visible = false; scene.add(m31Grp);
@@ -831,6 +869,30 @@ function makeRingTexture(){
     c.lineTo(S/2+Math.cos(a)*r2, S/2+Math.sin(a)*r2); c.stroke();
   }
   return new THREE.CanvasTexture(cv);
+}
+
+/* 北斗 MEO 卫星：金色隔热膜星体 + 两侧大太阳翼（示意） */
+function buildBeiDou(){
+  const g = new THREE.Group();
+  const busMat   = new THREE.MeshPhongMaterial({ color:0xd9c98d, shininess:22, specular:0x6b6042 });
+  const panelMat = new THREE.MeshPhongMaterial({ color:0x1f4a8c, shininess:34, specular:0x2c4f7a });
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(10, 13, 10), busMat));
+  /* 两侧太阳翼（各 3 块板） */
+  for (const sgn of [-1, 1]){
+    const wing = new THREE.Group();
+    for (let i=0;i<3;i++){
+      const pl = new THREE.Mesh(new THREE.BoxGeometry(10, 0.8, 8.4), panelMat);
+      pl.position.x = sgn*(8 + i*10.4);
+      wing.add(pl);
+    }
+    g.add(wing);
+  }
+  /* 对地天线 */
+  const ant = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 3.4, 16), busMat);
+  ant.position.y = 8.2; g.add(ant);
+  const dish = new THREE.Mesh(new THREE.SphereGeometry(4.6, 20, 12, 0, Math.PI*2, 0, Math.PI/2.6), busMat);
+  dish.position.y = 10.4; dish.rotation.x = Math.PI; g.add(dish);
+  return g;
 }
 
 function buildStation(){
@@ -1126,7 +1188,9 @@ function hideAll(){
   if (sunGrp)  sunGrp.visible  = false;
   if (limbGrp) limbGrp.visible = false;
   if (m31Grp)  m31Grp.visible  = false;
+  if (bdGrp)   bdGrp.visible   = false;
   m31T0 = 0;                    // 深空观测的叠加计时复位
+  bdT0  = 0;                    // 北斗观测的积分计时复位
   moonMesh.visible = true;      // 临边观测段会隐藏月球，切场景时恢复
   camera.up.set(0,1,0);         // 临边观测段会倾斜相机基准，切场景时恢复
   introKill();                  // 切场景：收起任务说明卡
@@ -1457,6 +1521,107 @@ function driveLimb(p, t, dt){
   } else {
     banner(5,'数据回传');
     sub('数据回传','反演大气成分垂直廓线 → 等待地面站可见窗口下传');
+  }
+}
+
+/* =========================================================================
+   场景 4 · 空间目标观测：拍摄北斗 MEO 导航卫星
+   独立动画。这里演示的是【点目标】观测 —— 与仙女座（展源）恰成对照：
+   目标视张角仅 0.03 角秒，远小于相机分辨率，因此拍不出形状；
+   载荷能做的是：探测、跟踪、光度测量（亮度随时间的变化）。
+   ========================================================================= */
+function driveBeidou(p, t, dt){
+  gsGrp.visible = false;
+  moonMesh.visible = false;
+  sunGrp.visible = false;
+  m31Grp.visible = false;
+  bdGrp.visible = true;
+
+  /* 卫星沿轨道运行；目标是固定方向上的空间目标 */
+  const ang = lerp(108, 132, seg(p, 0, 1, 'inOutSine'));
+  const sp  = orbitPos(ang, ORBIT_R);
+  satellite.position.copy(sp);
+  setOrbitRadius(ORBIT_R);
+  orbitLine.visible = true;
+
+  /* 从本星看目标的真实方向（随轨道位置缓慢变化 → 所以要跟踪） */
+  const bdDir = BD_POS.clone().sub(sp).normalize();
+
+  /* 姿态机动：载荷(+Z)由对地方向转向目标 */
+  const aim = seg(p, .16, .44, 'inOutCubic');
+  const lookDir = sp.clone().normalize().negate().lerp(bdDir, aim).normalize();
+  satellite.lookAt(sp.clone().addScaledVector(lookDir, 400));
+  if (satFlame) satFlame.visible = false;
+  satLens.material.color.setHex(aim > .97 ? 0x9fd0ff : 0x6fe3a1);
+
+  /* 指向视线（从本星指向目标） */
+  const sv = seg(p, .30, .52, 'inOutCubic');
+  bdSight.visible = sv > .01;
+  bdSight.material.opacity = .5*sv;
+  setLine2(bdSight, sp.clone().addScaledVector(bdDir, 40),
+                    BD_POS.clone().addScaledVector(bdDir, -46));
+
+  /* 相机：卫星背向目标一侧、偏侧斜构图 */
+  const side = new THREE.Vector3(0,1,0).cross(bdDir).normalize();
+  const upv  = bdDir.clone().cross(side).normalize();
+  const kf = seg(p, .10, .62, 'inOutSine');
+  const camPos = V(), look = V();
+  camPos.copy(sp)
+        .addScaledVector(bdDir, -lerp(200, 140, kf))
+        .addScaledVector(side,   lerp(86, 112, kf))
+        .addScaledVector(upv,    lerp(24, 36, kf));
+  look.copy(sp)
+      .addScaledVector(bdDir, lerp(80, 330, seg(p,.16,.58,'inOutCubic')))
+      .addScaledVector(side,  lerp(6, -42, seg(p,.16,.58,'inOutCubic')))
+      .addScaledVector(upv,   lerp(-4, -18, seg(p,.16,.58,'inOutCubic')));
+  camera.position.copy(camPos); camera.lookAt(look);
+  bdLbl.position.copy(BD_POS).addScaledVector(upv, 26).addScaledVector(side, -30);
+  bdLbl.material.opacity = seg(p, .40, .62, 'outCubic');
+
+  /* 积分进度：用真实时间推进 → 观测窗冻结展示期间光度曲线仍在累积 */
+  const inImg = p > .55 && p < .92;
+  if (!inImg) bdT0 = 0;
+  if (inImg && !bdT0 && $('payloadWin').classList.contains('on')) bdT0 = t;
+  const ph = bdT0 ? clamp((t - bdT0)/4.0, 0, 1) : 0;
+
+  /* HUD：把"拍不出形状"这件事直接写在界面上 */
+  hud('A', '目标距离', '21 438 km', '北斗 MEO 导航卫星 · 视星等 12.6');
+  hudTone('green');
+  hud('B', '视张角', '0.03″（未分辨）', '远小于分辨率 → 只能测光，拍不出形状');
+  hudBTone('');
+  reticle(false); warn(false);
+
+  /* 观测窗 */
+  if (inImg){
+    payload(payGate(p > .58), {
+      mode:'空间目标观测 · 北斗卫星',
+      det: ph < .2 ? '捕获点目标 · 积分中' : '跟踪 <b>北斗 MEO 卫星</b>（点目标）',
+      conf:(0.88 + .08*ph).toFixed(2),
+      meta:'曝光 2 s × 32 帧 · R 波段 0.4~0.9 μm', src:'beidou',
+      t: t, ph: ph, frames: Math.max(1, Math.round(ph*32))
+    });
+  } else {
+    payload(false);
+  }
+
+  /* 分阶段叙事 */
+  if (p < .16){
+    banner(1,'指令接收');
+    sub('指令接收','地面站上注任务：对北斗 MEO 导航卫星进行光学观测（编目合作目标）');
+  } else if (p < .34){
+    banner(2,'自感知');
+    sub('自感知', p < .26 ? 'GPS 定轨 · 星敏+陀螺读姿态与角速度'
+                          : '查目标两行根数（TLE）预报方位 → 计算可见窗口与相位角');
+  } else if (p < .52){
+    banner(3,'自决策');
+    sub('自决策','解算指向姿态 · 预测角速度约 0.01°/s（远慢于 LEO 目标）· 排定 2 s × 32 帧');
+  } else if (p < .82){
+    banner(4,'自执行 · 点目标测量');
+    sub('自执行', p < .66 ? '飞轮机动至跟踪指向 → 目标稳定落于视场'
+                          : '长积分成像 → 提取目标像元 → 记录光度随时间变化（形状不可分辨）');
+  } else {
+    banner(5,'数据回传');
+    sub('数据回传','方位与亮度序列打包（用于编目更新与定轨）→ 等待地面站可见窗口下传');
   }
 }
 
@@ -2157,6 +2322,110 @@ function capPanel(on, withNew){
            '<span class="ck">' + (isNew ? '+' : '✓') + '</span>' + c + '</div>';
   }).join('');
 }
+/* ---- 北斗卫星（点目标）成像 ----
+   与仙女座恰成对照：目标视张角 0.03"，远小于分辨率 → 永远是一个点。
+   点源的像完全由光学系统决定（衍射斑），与被摄物形状无关 ——
+   所以画面里那颗"星"是谁，只能靠指向和轨道数据来确认。
+   画面 = 暗背景 + 锐利星点（跟踪中缓慢漂移）+ 目标衍射斑 + 光度曲线。 */
+function bdMag(u){
+  /* 示意光度模型：整体稳定 + 慢变化 + 一次太阳翼镜面反光（glint） */
+  return 12.55 + 0.16*Math.sin(u*6.3) + 0.09*Math.sin(u*15.7 + 1.2)
+       - 1.05*Math.exp(-Math.pow((u - 0.66)/0.030, 2));
+}
+function drawLightCurve(c, W, H, ph, magNow){
+  const gw = W*0.30, gh = H*0.225;
+  const gx = W*0.955 - gw, gy = H*0.665;
+  c.fillStyle = 'rgba(6,12,22,.74)';    c.fillRect(gx, gy, gw, gh);
+  c.strokeStyle = 'rgba(90,140,220,.5)'; c.lineWidth = 1.4;
+  c.strokeRect(gx+0.5, gy+0.5, gw-1, gh-1);
+  c.fillStyle = 'rgba(140,200,255,.88)'; c.font = '13px Consolas, monospace';
+  c.fillText('光度曲线 · R 波段', gx+9, gy+18);
+
+  const px = gx + 46, py = gy + 28, pw = gw - 60, phh = gh - 42;
+  const mTop = 11.0, mBot = 13.2;
+  const Y = m => py + (m - mTop)/(mBot - mTop) * phh;
+  c.strokeStyle = 'rgba(90,140,220,.22)'; c.lineWidth = 1;
+  for (const m of [12, 13]){
+    c.beginPath(); c.moveTo(px, Y(m)); c.lineTo(px+pw, Y(m)); c.stroke();
+    c.fillStyle = 'rgba(140,200,255,.6)'; c.font = '11px Consolas, monospace';
+    c.fillText(m.toFixed(0), gx+16, Y(m)+4);
+  }
+  if (ph > 0.01){
+    c.strokeStyle = '#6fe3a1'; c.lineWidth = 2.0; c.lineJoin = 'round';
+    c.beginPath();
+    const NS = 140;
+    for (let i=0;i<=NS;i++){
+      const u = ph * i/NS, X = px + pw*(i/NS), Yv = Y(bdMag(u));
+      i ? c.lineTo(X, Yv) : c.moveTo(X, Yv);
+    }
+    c.stroke();
+    const Xc = px + pw, Yc = Y(magNow);
+    c.fillStyle = '#ffd166'; c.beginPath(); c.arc(Xc, Yc, 3.6, 0, 7); c.fill();
+    c.font = '12px Consolas, monospace';
+    const lab = magNow.toFixed(2) + ' mag';
+    c.fillText(lab, clamp(Xc - c.measureText(lab).width - 8, px, px+pw), Yc - 10);
+  }
+  c.fillStyle = 'rgba(140,200,255,.55)'; c.font = '11px Consolas, monospace';
+  c.fillText('时间 →', px + pw - 44, gy + gh - 5);
+}
+function drawBeidouTarget(c, W, H, info){
+  const t  = info.t  || 0;
+  const ph = clamp(info.ph === undefined ? 1 : info.ph, 0, 1);
+  const U  = W/900;                                   // 尺度基准
+  c.fillStyle = '#04070d'; c.fillRect(0,0,W,H);
+
+  /* 恒星背景：载荷在跟踪目标 → 星场在视场内缓慢漂移 */
+  const rnd = mulberry32(50531);
+  const N = Math.round(W*H/5600);
+  const dx = -t*7*U, dy = t*2.6*U;
+  const tints = ['255,255,255','206,226,255','255,236,206','255,208,182'];
+  for (let i=0;i<N;i++){
+    const x0 = rnd()*W, y0 = rnd()*H, m = Math.pow(rnd(), 2.4), tint = tints[(rnd()*4)|0];
+    const x = ((x0 + dx) % W + W) % W, y = ((y0 + dy) % H + H) % H;
+    const r = (0.5 + m*1.7)*U, a = 0.18 + m*0.78;
+    if (m > 0.62){
+      const g = c.createRadialGradient(x,y,0, x,y, r*3.0);
+      g.addColorStop(0,'rgba('+tint+','+(a*0.28).toFixed(2)+')');
+      g.addColorStop(1,'rgba('+tint+',0)');
+      c.fillStyle = g; c.beginPath(); c.arc(x,y, r*3.0, 0, 7); c.fill();
+    }
+    c.fillStyle = 'rgba('+tint+','+a.toFixed(2)+')';
+    c.beginPath(); c.arc(x,y, r, 0, 7); c.fill();
+  }
+
+  /* 目标：未分辨点源 —— 像的形状由光学系统决定（衍射斑），与被摄物无关 */
+  const tx = W*0.50, ty = H*0.44;
+  const magNow = bdMag(ph);
+  const gain = clamp(1.35 - 0.28*(magNow - 11.9), 0.55, 1.25);
+  const Rc = 3.4*U;
+  const halo = c.createRadialGradient(tx,ty,0, tx,ty, Rc*9);
+  halo.addColorStop(0,   'rgba(214,232,255,'+(0.30*gain*ph).toFixed(3)+')');
+  halo.addColorStop(0.16,'rgba(180,210,255,'+(0.10*gain*ph).toFixed(3)+')');
+  halo.addColorStop(1,   'rgba(150,190,255,0)');
+  c.fillStyle = halo; c.beginPath(); c.arc(tx,ty, Rc*9, 0, 7); c.fill();
+  /* 第一衍射环（真实光学系统的特征，与目标形状无关） */
+  c.strokeStyle = 'rgba(190,220,255,'+(0.22*ph).toFixed(3)+')';
+  c.lineWidth = 1.5*U;
+  c.beginPath(); c.arc(tx,ty, Rc*3.4, 0, 7); c.stroke();
+  /* 主瓣 */
+  const core = c.createRadialGradient(tx,ty,0, tx,ty, Rc);
+  core.addColorStop(0,   'rgba(255,255,255,'+(0.98*ph).toFixed(3)+')');
+  core.addColorStop(0.45,'rgba(240,248,255,'+(0.72*ph).toFixed(3)+')');
+  core.addColorStop(1,   'rgba(200,225,255,0)');
+  c.fillStyle = core; c.beginPath(); c.arc(tx,ty, Rc, 0, 7); c.fill();
+
+  /* 识别框 + 关键提示 */
+  detectBox(c, tx - W*0.10, ty - H*0.13, W*0.20, H*0.26, '北斗 MEO 卫星', info.conf);
+  c.fillStyle = 'rgba(255,209,102,.82)'; c.font = '12px Consolas, monospace';
+  c.fillText('视张角 0.03″ · 未分辨（点目标）', tx + W*0.115, ty - H*0.085);
+
+  /* 光度曲线：点目标观测的真正产出 */
+  drawLightCurve(c, W, H, ph, magNow);
+
+  c.fillStyle = 'rgba(255,209,102,.85)';
+  c.fillText('ALGO: point-target track（点目标检测 + 光度测量）', 12, H-34);
+}
+
 function drawPayload(info){
   const cv = pwCv(), c = cv.getContext('2d');
   /* 全屏窗口：画布按容器实际尺寸 × DPR 设置，保证清晰 */
@@ -2281,6 +2550,8 @@ function drawPayload(info){
     detectBox(c, W*0.18, H*0.28, W*0.64, H*0.20, '大气廓线', info.conf);
     c.fillStyle = 'rgba(255,209,102,.85)'; c.font = '12px Consolas, monospace';
     c.fillText('ALGO: limb-scan（临边层析）', 12, H-34);
+  } else if (info.src === 'beidou'){
+    drawBeidouTarget(c, W, H, info);
   } else if (info.src === 'm31'){
     /* 深空观测：多帧叠加合成后的仙女座星系图像 */
     const stack = info.stack === undefined ? 1 : info.stack;
