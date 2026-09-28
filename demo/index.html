@@ -661,7 +661,9 @@ function initThree(){
   /* ---- 空间目标：北斗卫星 ---- */
   bdGrp = new THREE.Group(); bdGrp.visible = false; scene.add(bdGrp);
   bdBody = buildBeiDou();
-  bdBody.scale.setScalar(1.9);              // 远景可辨识（示意比例）
+  /* 目标模型放大到可辨识：真实北斗-3 太阳翼展约 20 m，本星仅 0.5 m 量级，
+     目标本就比本星大得多 —— 放大不违和，且不改"实际拍出来是个点"的结论。 */
+  bdBody.scale.setScalar(3.4);
   bdBody.position.copy(BD_POS);
   bdBody.lookAt(V(0,0,0));                  // 对地定向（天线朝地球）
   bdGrp.add(bdBody);
@@ -670,7 +672,7 @@ function initThree(){
     new THREE.LineBasicMaterial({ color:0x9fd0ff, transparent:true, opacity:.5,
       blending:THREE.AdditiveBlending, depthWrite:false }));
   bdGrp.add(bdSight);
-  bdLbl = makeTextSprite('北斗 MEO 卫星（示意）', '#9fd0ff', 13);
+  bdLbl = makeTextSprite('北斗 MEO 卫星（示意）', '#9fd0ff', 15);
   bdLbl.position.copy(BD_POS);
   bdGrp.add(bdLbl);
 
@@ -1575,7 +1577,7 @@ function driveBeidou(p, t, dt){
       .addScaledVector(side,  lerp(6, -42, seg(p,.16,.58,'inOutCubic')))
       .addScaledVector(upv,   lerp(-4, -18, seg(p,.16,.58,'inOutCubic')));
   camera.position.copy(camPos); camera.lookAt(look);
-  bdLbl.position.copy(BD_POS).addScaledVector(upv, 26).addScaledVector(side, -30);
+  bdLbl.position.copy(BD_POS).addScaledVector(upv, 62).addScaledVector(side, -34);
   bdLbl.material.opacity = seg(p, .40, .62, 'outCubic');
 
   /* 积分进度：用真实时间推进 → 观测窗冻结展示期间光度曲线仍在累积 */
