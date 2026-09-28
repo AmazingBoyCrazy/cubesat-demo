@@ -2382,31 +2382,49 @@ function drawBeidouTarget(c, W, H, info){
     c.beginPath(); c.arc(x,y, r, 0, 7); c.fill();
   }
 
-  /* 目标：未分辨点源 —— 像的形状由光学系统决定（衍射斑），与被摄物无关 */
+  /* 目标：未分辨点源。
+     注意：长积分下目标会【饱和展开】—— 画面里看到的尺寸是
+     光学 PSF + 饱和溢出 + 衍射结构，不是目标的真实大小。
+     真实空间目标观测图像里，亮目标正是这个样子。 */
   const tx = W*0.50, ty = H*0.44;
   const magNow = bdMag(ph);
   const gain = clamp(1.35 - 0.28*(magNow - 11.9), 0.55, 1.25);
-  const Rc = 3.4*U;
-  const halo = c.createRadialGradient(tx,ty,0, tx,ty, Rc*9);
-  halo.addColorStop(0,   'rgba(214,232,255,'+(0.30*gain*ph).toFixed(3)+')');
-  halo.addColorStop(0.16,'rgba(180,210,255,'+(0.10*gain*ph).toFixed(3)+')');
-  halo.addColorStop(1,   'rgba(150,190,255,0)');
-  c.fillStyle = halo; c.beginPath(); c.arc(tx,ty, Rc*9, 0, 7); c.fill();
+  const Rc = 0.016*H;                 // 饱和核心半径
+  const Rh = 0.072*H;                 // 第一衍射环 / 光晕半径
+  /* 外围光晕 */
+  const h1 = c.createRadialGradient(tx,ty,0, tx,ty, Rh*2.1);
+  h1.addColorStop(0,   'rgba(186,216,255,'+(0.30*gain*ph).toFixed(3)+')');
+  h1.addColorStop(0.30,'rgba(152,192,248,'+(0.11*gain*ph).toFixed(3)+')');
+  h1.addColorStop(1,   'rgba(130,172,232,0)');
+  c.fillStyle = h1; c.beginPath(); c.arc(tx,ty, Rh*2.1, 0, 7); c.fill();
   /* 第一衍射环（真实光学系统的特征，与目标形状无关） */
-  c.strokeStyle = 'rgba(190,220,255,'+(0.22*ph).toFixed(3)+')';
-  c.lineWidth = 1.5*U;
-  c.beginPath(); c.arc(tx,ty, Rc*3.4, 0, 7); c.stroke();
-  /* 主瓣 */
+  c.strokeStyle = 'rgba(202,226,255,'+(0.30*ph).toFixed(3)+')';
+  c.lineWidth = Math.max(1.4, 0.0035*H);
+  c.beginPath(); c.arc(tx,ty, Rh, 0, 7); c.stroke();
+  /* 衍射星芒（次镜支架） */
+  for (const ang of [0, Math.PI/2, Math.PI, Math.PI*1.5]){
+    const dx = Math.cos(ang), dy = Math.sin(ang);
+    const gl = c.createLinearGradient(tx,ty, tx+dx*Rh*2.6, ty+dy*Rh*2.6);
+    gl.addColorStop(0,'rgba(232,243,255,'+(0.44*gain*ph).toFixed(3)+')');
+    gl.addColorStop(1,'rgba(200,225,255,0)');
+    c.strokeStyle = gl; c.lineWidth = Math.max(1.6, 0.004*H); c.lineCap = 'round';
+    c.beginPath(); c.moveTo(tx,ty); c.lineTo(tx+dx*Rh*2.6, ty+dy*Rh*2.6); c.stroke();
+  }
+  /* 饱和核心（长积分下过曝成一片白 —— 这是"看起来大"的真正原因） */
   const core = c.createRadialGradient(tx,ty,0, tx,ty, Rc);
-  core.addColorStop(0,   'rgba(255,255,255,'+(0.98*ph).toFixed(3)+')');
-  core.addColorStop(0.45,'rgba(240,248,255,'+(0.72*ph).toFixed(3)+')');
-  core.addColorStop(1,   'rgba(200,225,255,0)');
+  core.addColorStop(0,   'rgba(255,255,255,'+(0.99*ph).toFixed(3)+')');
+  core.addColorStop(0.58,'rgba(255,255,255,'+(0.94*ph).toFixed(3)+')');
+  core.addColorStop(0.84,'rgba(246,251,255,'+(0.62*ph).toFixed(3)+')');
+  core.addColorStop(1,   'rgba(212,233,255,0)');
   c.fillStyle = core; c.beginPath(); c.arc(tx,ty, Rc, 0, 7); c.fill();
 
-  /* 识别框 + 关键提示 */
-  detectBox(c, tx - W*0.10, ty - H*0.13, W*0.20, H*0.26, '北斗 MEO 卫星', info.conf);
-  c.fillStyle = 'rgba(255,209,102,.82)'; c.font = '12px Consolas, monospace';
-  c.fillText('视张角 0.03″ · 未分辨（点目标）', tx + W*0.115, ty - H*0.085);
+  /* 识别框 + 关键提示（说明图中尺寸为何不是目标真实大小） */
+  detectBox(c, tx - W*0.10, ty - H*0.15, W*0.20, H*0.30, '北斗 MEO 卫星', info.conf);
+  c.fillStyle = 'rgba(255,209,102,.85)'; c.font = '12px Consolas, monospace';
+  c.fillText('目标真实视张角 0.03″', tx + W*0.115, ty - H*0.125);
+  c.fillStyle = 'rgba(150,200,255,.75)';
+  c.fillText('图中尺寸 = 光学 PSF + 饱和溢出', tx + W*0.115, ty - H*0.070);
+  c.fillText('（不是目标的真实大小）', tx + W*0.115, ty - H*0.015);
 
   /* 光度曲线：点目标观测的真正产出 */
   drawLightCurve(c, W, H, ph, magNow);
