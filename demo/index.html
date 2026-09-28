@@ -1553,6 +1553,17 @@ function driveApproach(p, t, dt){
   const kmNow  = lerp(APPR_KM_FAR, APPR_KM_NEAR, kk);          // 相对距离（km）
   const N      = APPR_RES_NUM / kmNow;                         // 目标跨分辨单元数
 
+  /* 曝光时间：取【饱和限】与【运动模糊限】两者的较小者
+     · 饱和限：目标在 18 km 时约 -4.3 等（同金星），极亮 —— 曝光上限 ∝ 距离²
+     · 运动模糊限：曝光内像移不超过 1 个分辨元 —— 上限 = θ·d / v_t
+     实际由饱和主导到约 50 km，之后由运动模糊主导 → 全程都很短 */
+  const thRes = 1.6e-6;                                        // 角分辨率 0.33″（rad）
+  const vT    = lerp(60, 4, kk);                               // 横向相对速度 m/s
+  const tSat  = 0.326 * Math.pow(kmNow/18, 2);                 // ms
+  const tMot  = thRes * kmNow*1000 / vT * 1000;                // ms
+  const expMs = Math.min(tSat, tMot);
+  const expTxt = expMs >= 1 ? expMs.toFixed(1)+' ms' : Math.round(expMs*1000)+' μs';
+
   satellite.position.copy(sp);
   setOrbitRadius(ORBIT_R);
   orbitLine.visible = true;
@@ -1600,7 +1611,7 @@ function driveApproach(p, t, dt){
                   : '结构清晰 · <b>帆板分块 / 天线 / 载荷口径</b> 均可判读',
       conf:(0.86 + 0.12*clamp((N-3)/80, 0, 1)).toFixed(2),
       meta:'相对距离 ' + kmNow.toFixed(0) + ' km · 3 m 目标 ≈ ' + N.toFixed(1) + ' 个分辨单元',
-      src:'approach', N:N, km:kmNow, t:t
+      src:'approach', N:N, km:kmNow, t:t, expTxt:expTxt
     });
   } else {
     payload(false);
@@ -2476,6 +2487,8 @@ function drawApproachImage(c, W, H, info){
   /* 状态判读面板 */
   drawAssessPanel(c, W, H, N);
 
+  c.fillStyle = 'rgba(140,200,255,.72)'; c.font = '12px Consolas, monospace';
+  c.fillText('跟踪窗口读出（裁剪显示） · 角分辨率 0.33″ · 曝光 ' + (info.expTxt||'—'), 12, H-56);
   c.fillStyle = 'rgba(255,209,102,.85)';
   c.fillText('ALGO: target-recog（目标识别 + 状态判读）', 12, H-34);
 }
