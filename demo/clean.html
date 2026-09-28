@@ -415,6 +415,12 @@ const SUN_DIR  = V(0.86, 0.30, 0.42).normalize();
 const LIMB_RS = 150;                  // 临边观测时的轨道半径（示意放大）
 const LIMB_RT = R_EARTH*1.18;         // 切点距地心 → 切线高度 18 单位（示意放大）
 
+/* 深空观测目标：仙女座星系 M31（NGC 224）
+   指向选择：与太阳约成 96°（满足宽视场深空相机的太阳规避角），
+   且在本场景轨道相位下距地心方向约 110°、离地球边缘 86°（彻底避开地气光）。 */
+const M31_DIR = V(-0.341, 0.916, -0.213).normalize();
+const M31_POS = M31_DIR.clone().multiplyScalar(5200);
+
 /* 地面站（中国大陆 · 北京，示意） */
 const GS_LAT = 40.4, GS_LON = 116.8;
 /* 观测目标（美国中部 · 示意） */
@@ -479,7 +485,20 @@ const SCENES = [
     drive: driveLimb
   },
   {
-    id:3, name:'载荷算法上注 · 新增能力', short:'载荷算法上注',
+    id:3, name:'深空观测 · 仙女座星系', short:'仙女座拍摄', standalone:true,
+    sub:'姿态机动 → 惯性凝视 → 多帧采集 → 星上叠加 → 廓线级细节呈现',
+    cap:'L2 星上辅助（宽视场深空通道）', dur:26, motion:'惯性凝视 · 叠加累积 · 星系渐显',
+    phases:[
+      { k:'指令接收', at:.00, items:['地面站上注任务：拍摄仙女座星系（M31 / NGC 224）','目标距地 254 万光年 · 视星等 3.4 · 角尺寸 3.2°×1.0°'] },
+      { k:'自感知',   at:.16, items:['<span class="svc">GPS</span> 定轨：确定卫星位置','<span class="svc">星敏+陀螺</span> 读姿态与角速度','查星表确认 M31 方位（赤经 00h42m / 赤纬 +41°）','读太阳与地心夹角 → 评估杂光风险'] },
+      { k:'自决策',   at:.34, items:['解算惯性凝视指向姿态','校验太阳规避角（当前 96° ✓）','校验地气光规避角（离地球边缘 86° ✓）','排定曝光序列：30 s × 24 帧'] },
+      { k:'自执行',   at:.52, items:['<span class="svc">反作用飞轮</span> 机动至凝视姿态','惯性稳定指向（姿态漂移 < 0.001°/s）','<span class="svc">深空相机</span> 多帧采集（单帧仅见核心）','<span class="svc">星上叠加</span> 对齐累加 → 暗尘带与盘面显现'] },
+      { k:'数据回传', at:.82, items:['合成图像压缩存储（含曝光 / 姿态 / 叠加帧数）','等待地面站可见窗口下传'] },
+    ],
+    drive: driveM31
+  },
+  {
+    id:4, name:'载荷算法上注 · 新增能力', short:'载荷算法上注',
     sub:'上注算法包 → 校验 → 装订入库 → 新增飞机识别能力',
     cap:'L3 星上自主（软件定义核心）', dur:22, motion:'上行数据流 · 能力清单逐项点亮',
     phases:[
@@ -491,7 +510,7 @@ const SCENES = [
     drive: driveUpload
   },
   {
-    id:4, name:'赴观测途中 · 遇废弃卫星自主规避', short:'自主规避',
+    id:5, name:'赴观测途中 · 遇废弃卫星自主规避', short:'自主规避',
     sub:'接新指令 → 途中识别 → 计算 → 变轨规避 → 恢复',
     cap:'L3 星上自主（前沿）', dur:26, motion:'急促变焦 · 轨迹急偏 · 告警脉冲',
     phases:[
@@ -505,7 +524,7 @@ const SCENES = [
     drive: driveAvoid
   },
   {
-    id:5, name:'拍摄美国上空标记物', short:'对地成像',
+    id:6, name:'拍摄美国上空标记物', short:'对地成像',
     sub:'过境窗口 · 对地成像 · 飞机目标识别',
     cap:'L2 星上辅助', dur:24, motion:'高空俯冲 · 地球自转定位 · 地面横扫',
     phases:[
@@ -518,7 +537,7 @@ const SCENES = [
     drive: driveGround
   },
   {
-    id:6, name:'返回本土 · 图像回传', short:'图像回传',
+    id:7, name:'返回本土 · 图像回传', short:'图像回传', dlbar:true,
     sub:'返回中国大陆上空 → 过境建链 → 数传下传',
     cap:'L2 星上辅助', dur:22, motion:'垂直数据流 · 链路脉冲 · 进度累积',
     phases:[
@@ -534,8 +553,8 @@ const SCENES = [
 
 /* 一级功能分组：把五个场景归为两大功能块 */
 const GROUPS = [
-  { id:'moon', name:'月亮拍摄任务', scenes:[1,2] },
-  { id:'new',  name:'新拍摄任务',   scenes:[3,4,5,6] },
+  { id:'moon', name:'月亮拍摄任务', scenes:[1,2,3] },
+  { id:'new',  name:'新拍摄任务',   scenes:[4,5,6,7] },
 ];
 
 /* =========================================================================
@@ -547,7 +566,8 @@ let renderer, scene, camera, sun, earthGrp, earthMesh, cloudMesh, atmMesh,
     swathBand, targetMark, gsGrp, gsRing=[], gsBeam,
     satellite=null, moonImg=null, earthImg=null, orbitRNow=ORBIT_R,
     sunGrp=null, limbGrp=null, limbSight=null, limbHLine=null, limbHDot=null,
-    limbRayGrp=null, limbLbl=null, limbStars=null;
+    limbRayGrp=null, limbLbl=null, limbStars=null,
+    m31Grp=null, m31Sight=null, m31Lbl=null, m31T0=0;
 
 function initThree(){
   const cv = document.getElementById('gl');
@@ -602,6 +622,26 @@ function initThree(){
   moonMesh.material.map.encoding = THREE.sRGBEncoding;
   moonMesh.position.copy(MOON_POS);
   scene.add(moonMesh);
+
+  /* ---- 深空目标 M31 专用对象 ---- */
+  m31Grp = new THREE.Group(); m31Grp.visible = false; scene.add(m31Grp);
+  (function(){
+    const tex = new THREE.CanvasTexture(m31Galaxy(1));
+    if (THREE.sRGBEncoding !== undefined) tex.encoding = THREE.sRGBEncoding;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true,
+      depthWrite:false, opacity:.95 }));
+    sp.position.copy(M31_POS);
+    sp.scale.set(700, 700, 1);          // 正方形贴图 → 等比缩放；远景约 4.4° 视张角
+    m31Grp.add(sp);
+  })();
+  m31Sight = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([V(0,0,0), V(0,0,0)]),
+    new THREE.LineBasicMaterial({ color:0x9fd0ff, transparent:true, opacity:.5,
+      blending:THREE.AdditiveBlending, depthWrite:false }));
+  m31Grp.add(m31Sight);
+  m31Lbl = makeTextSprite('仙女座星系 M31 · NGC 224', '#9fd0ff', 130);
+  m31Lbl.position.copy(M31_POS);        // 位置每帧按相机基准修正（保证在画面"上方"）
+  m31Grp.add(m31Lbl);
 
   /* ---- 临边观测（limb）专用对象 ---- */
   sunGrp = makeSun(); sunGrp.visible = false; scene.add(sunGrp);
@@ -830,6 +870,160 @@ function onResize(){
   camera.aspect = w/h; camera.updateProjectionMatrix();
 }
 
+/* ---- M31（仙女座星系）成像渲染 ----
+   按"真实载荷多帧叠加合成"的特征绘制：
+     · 过曝核球（真实照片里 M31 核心总是饱和的）
+     · 椭圆盘面，倾角约 77°（短长轴比 ≈0.29）
+     · 近侧暗尘带（掠过核球下缘）+ 外围尘环
+     · 伴星系 M32（紧凑）与 M110（弥散）
+     · 前景银河系恒星：锐利星点，与星系弥散结构形成对比（这是天文照片的关键观感）
+     · 传感器噪点（叠加后显著下降）与镜头渐晕
+   stack: 0~1 叠加进度 —— 0 近似单帧短曝光（仅核心可见），1 为完整叠加结果。 */
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+/* 平滑结构（核球 / 盘面 / 尘带 / 伴星系）—— 缓存，仅 stack 变化时重绘 */
+let _m31Gal = { key:-1, cv:null };
+function m31Galaxy(stack){
+  const q = Math.round(clamp(stack,0,1)*16)/16;
+  if (_m31Gal.key === q) return _m31Gal.cv;
+
+  const W = 900, H = 900;                  // 正方形画布 + 等比贴合 → 椭圆的轴比与倾角不失真
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const c = cv.getContext('2d');
+  const cx = W*0.5, cy = H*0.5;
+  const A  = W*0.32;                       // 长半轴：3.2° 目标 / 5.0° 视场
+  const BA = 0.29;                         // 短长轴比（倾角 77°）
+  const PA = -35*DEG;                      // 长轴在画面内的倾角
+  const dev = 0.10 + 0.90*clamp(stack,0,1);   // 叠加进度 → 暗结构可见度
+
+  const glow = (R, ratio, stops, alpha) => {
+    c.save();
+    c.translate(cx, cy); c.rotate(PA); c.scale(1, ratio);
+    const g = c.createRadialGradient(0,0,0, 0,0,R);
+    stops.forEach(st => g.addColorStop(st[0], st[1]));
+    c.globalAlpha = alpha; c.fillStyle = g;
+    c.beginPath(); c.arc(0,0,R,0,7); c.fill();
+    c.restore();
+  };
+
+  /* 外盘（叠加越深越显现；单帧时几乎不可见） */
+  glow(A, BA,
+    [[0,'rgba(178,204,240,0.70)'],[0.26,'rgba(160,190,230,0.44)'],
+     [0.58,'rgba(132,164,214,0.18)'],[1,'rgba(110,140,190,0)']], 0.04+0.96*dev*dev);
+  /* 内盘（更扁长，强化盘面特征） */
+  glow(A*0.56, BA*1.32,
+    [[0,'rgba(232,240,252,0.80)'],[0.42,'rgba(202,220,244,0.42)'],
+     [1,'rgba(170,192,226,0)']], 0.10+0.90*dev*dev);
+  /* 核球（暖白偏黄，老年星族） */
+  glow(A*0.27, 0.62,
+    [[0,'rgba(255,246,224,0.98)'],[0.42,'rgba(255,229,182,0.62)'],
+     [0.75,'rgba(246,206,152,0.22)'],[1,'rgba(230,190,140,0)']], 0.72+0.28*dev);
+  /* 核心：饱和过曝 */
+  glow(A*0.055, 0.82,
+    [[0,'rgba(255,255,255,1)'],[0.40,'rgba(255,252,240,0.92)'],
+     [1,'rgba(255,245,220,0)']], 1);
+
+  /* 暗尘带：只在星系像素上做暗化（source-atop），尘带随叠加逐渐浮现 */
+  c.save();
+  c.globalCompositeOperation = 'source-atop';
+  const dv = 0.05 + 0.95*dev*dev;
+  const dust = (R, ratio, a0, a1, w, alpha, blurPx) => {
+    c.save();
+    c.translate(cx, cy); c.rotate(PA); c.scale(1, ratio);
+    c.filter = 'blur(' + blurPx.toFixed(1) + 'px)';
+    c.strokeStyle = 'rgba(20,15,12,' + alpha.toFixed(2) + ')';
+    c.lineWidth = w; c.lineCap = 'round';
+    c.beginPath(); c.arc(0,0,R, a0*DEG, a1*DEG); c.stroke();
+    c.restore();
+  };
+  dust(A*0.30, BA*1.20,   5, 208, A*0.115, 0.94*dv, A*0.032);   // 近侧主尘带（掠过核球下缘）
+  dust(A*0.26, BA*1.45,  12, 196, A*0.052, 0.90*dv, A*0.014);   // 紧贴核球的锐尘带
+  dust(A*0.155,BA*1.60,  15, 190, A*0.045, 0.76*dv, A*0.016);
+  dust(A*0.60, BA*1.05, 150, 350, A*0.060, 0.50*dv, A*0.045);   // 外围尘环（分段，较淡）
+  dust(A*0.60, BA*1.05, -20,  95, A*0.048, 0.36*dv, A*0.055);
+  c.restore();
+
+  /* 伴星系：M32（紧凑椭圆，核球下方）与 M110（大而弥散，左上） */
+  const rot = (x, y) => [cx + x*Math.cos(PA) - y*Math.sin(PA),
+                         cy + x*Math.sin(PA) + y*Math.cos(PA)];
+  const blob = (x, y, R, ratio, stops, alpha) => {
+    const q2 = rot(x, y);
+    c.save(); c.translate(q2[0], q2[1]); c.rotate(PA); c.scale(1, ratio);
+    const g = c.createRadialGradient(0,0,0, 0,0,R);
+    stops.forEach(st => g.addColorStop(st[0], st[1]));
+    c.globalAlpha = alpha; c.fillStyle = g;
+    c.beginPath(); c.arc(0,0,R,0,7); c.fill();
+    c.restore();
+  };
+  blob(-0.05*A,  0.27*A, A*0.062, 0.80,
+    [[0,'rgba(255,248,232,0.96)'],[0.35,'rgba(248,232,204,0.42)'],[1,'rgba(230,214,186,0)']],
+    0.62+0.38*dev);
+  blob(-0.36*A, -0.17*A, A*0.115, 0.52,
+    [[0,'rgba(240,236,228,0.60)'],[0.40,'rgba(224,220,214,0.24)'],[1,'rgba(200,198,196,0)']],
+    0.10+0.90*dev*dev);
+
+  _m31Gal = { key:q, cv };
+  return cv;
+}
+/* 前景恒星：归一化坐标 + 固定种子 → 逐帧重绘也保持稳定与锐利 */
+function m31Stars(c, W, H){
+  const rnd = mulberry32(20260928);
+  const N = Math.round(W*H/5200);
+  const tints = ['255,255,255','206,226,255','255,236,206','255,208,182'];
+  for (let i=0;i<N;i++){
+    const x = rnd()*W, y = rnd()*H;
+    const m = Math.pow(rnd(), 2.6);
+    const r = (0.5 + m*2.0) * (W/900);
+    const a = 0.20 + m*0.80;
+    const tint = tints[(rnd()*4)|0];
+    if (m > 0.62){                                  // 亮星带轻微光晕（保持星点锐利）
+      const g = c.createRadialGradient(x,y,0, x,y, r*3.0);
+      g.addColorStop(0,'rgba('+tint+','+(a*0.30).toFixed(2)+')');
+      g.addColorStop(1,'rgba('+tint+',0)');
+      c.fillStyle = g;
+      c.beginPath(); c.arc(x,y, r*3.0, 0, 7); c.fill();
+    }
+    c.fillStyle = 'rgba('+tint+','+a.toFixed(2)+')';
+    c.beginPath(); c.arc(x,y, r, 0, 7); c.fill();
+  }
+}
+/* 噪点（叠加后显著降低）与渐晕 */
+let _m31Nz = { key:'', cv:null };
+function m31Noise(w, h){
+  const key = w+'x'+h;
+  if (_m31Nz.key === key) return _m31Nz.cv;
+  const cv = document.createElement('canvas'); cv.width=w; cv.height=h;
+  const c = cv.getContext('2d');
+  const img = c.createImageData(w,h), d = img.data;
+  const rnd = mulberry32(913377);
+  for (let i=0;i<d.length;i+=4){
+    const v = (rnd()*255)|0;
+    d[i]=d[i+1]=d[i+2]=v; d[i+3]=255;
+  }
+  c.putImageData(img,0,0);
+  _m31Nz = { key, cv };
+  return cv;
+}
+function m31Finish(c, W, H, stack){
+  const nz = m31Noise(Math.min(700, W), Math.min(440, H));
+  c.save();
+  c.globalAlpha = 0.075*(1 - 0.55*clamp(stack,0,1));
+  c.fillStyle = c.createPattern(nz, 'repeat');
+  c.fillRect(0,0,W,H);
+  c.restore();
+  const vg = c.createRadialGradient(W*0.5, H*0.5, Math.min(W,H)*0.22,
+                                    W*0.5, H*0.5, Math.max(W,H)*0.70);
+  vg.addColorStop(0,'rgba(0,0,0,0)');
+  vg.addColorStop(1,'rgba(0,0,0,0.45)');
+  c.fillStyle = vg; c.fillRect(0,0,W,H);
+}
+
 /* ---- 临边观测（limb）辅助 ---- */
 /* 沿线段设置两点（动态更新视线 / 切线高度） */
 function setLine2(line, a, b){
@@ -918,6 +1112,8 @@ function hideAll(){
   swayBandReset();
   if (sunGrp)  sunGrp.visible  = false;
   if (limbGrp) limbGrp.visible = false;
+  if (m31Grp)  m31Grp.visible  = false;
+  m31T0 = 0;                    // 深空观测的叠加计时复位
   moonMesh.visible = true;      // 临边观测段会隐藏月球，切场景时恢复
   camera.up.set(0,1,0);         // 临边观测段会倾斜相机基准，切场景时恢复
   introKill();                  // 切场景：收起任务说明卡
@@ -1248,6 +1444,110 @@ function driveLimb(p, t, dt){
   } else {
     banner(5,'数据回传');
     sub('数据回传','反演大气成分垂直廓线 → 等待地面站可见窗口下传');
+  }
+}
+
+/* =========================================================================
+   场景 3 · 深空观测：拍摄仙女座星系（M31）
+   独立动画。载荷换用宽视场深空通道（FOV 5.0°×3.5°）。
+   成像画面按"真实载荷多帧叠加合成"绘制：单帧只见核心 → 叠加后
+   盘面、暗尘带、伴星系逐渐显现（观感与真实天文照片一致）。
+   ========================================================================= */
+function driveM31(p, t, dt){
+  gsGrp.visible = false;
+  moonMesh.visible = false;                // 深空观测：不需要月球
+  sunGrp.visible = false;                  // 太阳处于背向（规避角 96°），不入画
+  m31Grp.visible = true;
+
+  /* 卫星沿轨道运行，全程保持对 M31 的惯性凝视 */
+  const ang = lerp(168, 196, seg(p, 0, 1, 'inOutSine'));
+  const sp  = orbitPos(ang, ORBIT_R);
+  satellite.position.copy(sp);
+  setOrbitRadius(ORBIT_R);
+  orbitLine.visible = true;
+
+  /* 姿态机动：载荷(+Z)由对地方向转向 M31 */
+  const aim = seg(p, .16, .44, 'inOutCubic');
+  const lookDir = sp.clone().normalize().negate().lerp(M31_DIR, aim).normalize();
+  satellite.lookAt(sp.clone().addScaledVector(lookDir, 400));
+  if (satFlame) satFlame.visible = false;
+  satLens.material.color.setHex(aim > .97 ? 0x9fd0ff : 0x6fe3a1);
+
+  /* 指向视线（短段示意，不拉到 5200 单位） */
+  const sv = seg(p, .30, .52, 'inOutCubic');
+  m31Sight.visible = sv > .01;
+  m31Sight.material.opacity = .5*sv;
+  setLine2(m31Sight, sp.clone().addScaledVector(M31_DIR, 26),
+                    sp.clone().addScaledVector(M31_DIR, 300));
+  m31Lbl.material.opacity = seg(p, .40, .62, 'outCubic');
+
+  /* 相机：卫星背向 M31 一侧、偏侧斜构图 —— 卫星近景、星系右上远景 */
+  const side = new THREE.Vector3(0,1,0).cross(M31_DIR).normalize();
+  const upv  = M31_DIR.clone().cross(side).normalize();
+  const kf   = seg(p, .10, .62, 'inOutSine');
+  const camPos = V(), look = V();
+  camPos.copy(sp)
+        .addScaledVector(M31_DIR, -lerp(230, 168, kf))
+        .addScaledVector(side,     lerp(96, 126, kf))
+        .addScaledVector(upv,      lerp(28, 42, kf));
+  look.copy(sp)
+      .addScaledVector(M31_DIR, lerp(60, 470, seg(p,.16,.58,'inOutCubic')))
+      .addScaledVector(side,    lerp(10, -56, seg(p,.16,.58,'inOutCubic')))
+      .addScaledVector(upv,     lerp(-6, -24, seg(p,.16,.58,'inOutCubic')));
+  camera.position.copy(camPos); camera.lookAt(look);
+  /* 标注摆到星系上方偏侧（用相机的 up/side 基准 → 稳定落在画面左上） */
+  m31Lbl.position.copy(M31_POS).addScaledVector(upv, 250).addScaledVector(side, -150);
+
+  /* ---- 叠加进度 ----
+     用真实时间推进（不是 prog）→ 观测窗冻结展示期间画面仍在"显影"，
+     正好呈现"单帧只见核心 → 叠加后暗结构浮现"的过程。 */
+  const inImg = p > .55 && p < .92;
+  if (!inImg) m31T0 = 0;                                   // 出段即复位
+  if (inImg && !m31T0 && $('payloadWin').classList.contains('on')) m31T0 = t;
+  const stack  = m31T0 ? clamp((t - m31T0)/4.2, 0, 1) : 0;
+  const frames = Math.max(1, Math.round(stack*24));
+
+  /* HUD */
+  const err = lerp(5.8, .03, seg(p, .24, .58, 'outCubic'));
+  hud('A', '指向误差', err.toFixed(2)+'°', '目标：仙女座星系 M31');
+  hudTone(err > .5 ? 'amber' : 'green');
+  hud('B', '曝光叠加', frames + ' / 24 帧',
+      '总积分 ' + (frames*30/60).toFixed(1) + ' 分钟 · 漂移 < 0.001°/s');
+  hudBTone(stack >= 1 ? 'green' : '');
+  reticle(false); warn(false);
+
+  /* 观测窗：卫星视角的深空成像（叠加合成结果） */
+  if (inImg){
+    payload(payGate(p > .58), {
+      mode:'深空观测 · 仙女座星系',
+      det: stack < .35 ? '识别到 <b>M31 核心</b> · 暗结构尚未显现'
+                       : '识别到 <b>仙女座星系 M31</b> · 旋臂与尘带已合成',
+      conf:(0.90 + .06*stack).toFixed(2),
+      meta:'FOV 5.0°×3.5° · 30 s × 24 帧叠加', src:'m31',
+      stack: stack, frames: frames
+    });
+  } else {
+    payload(false);
+  }
+
+  /* 分阶段叙事 */
+  if (p < .16){
+    banner(1,'指令接收');
+    sub('指令接收','地面站上注任务：拍摄仙女座星系（M31 / NGC 224）— 距地 254 万光年');
+  } else if (p < .34){
+    banner(2,'自感知');
+    sub('自感知', p < .26 ? 'GPS 定轨 · 星敏+陀螺读姿态'
+                          : '查星表确认 M31 方位（赤经 00h42m / 赤纬 +41°）→ 评估杂光风险');
+  } else if (p < .52){
+    banner(3,'自决策');
+    sub('自决策','解算惯性凝视姿态 · 校验太阳规避角 96° ✓ · 地气光规避角 86° ✓ · 排定 30 s × 24 帧');
+  } else if (p < .82){
+    banner(4,'自执行 · 深空成像');
+    sub('自执行', p < .66 ? '飞轮机动至凝视姿态 → 惯性稳定指向（漂移 < 0.001°/s）'
+                          : '深空相机多帧采集 → 星上对齐叠加，暗尘带与盘面逐渐显现');
+  } else {
+    banner(5,'数据回传');
+    sub('数据回传','合成图像压缩存储（含曝光 / 姿态 / 叠加帧数）→ 等待地面站可见窗口下传');
   }
 }
 
@@ -1968,6 +2268,27 @@ function drawPayload(info){
     detectBox(c, W*0.18, H*0.28, W*0.64, H*0.20, '大气廓线', info.conf);
     c.fillStyle = 'rgba(255,209,102,.85)'; c.font = '12px Consolas, monospace';
     c.fillText('ALGO: limb-scan（临边层析）', 12, H-34);
+  } else if (info.src === 'm31'){
+    /* 深空观测：多帧叠加合成后的仙女座星系图像 */
+    const stack = info.stack === undefined ? 1 : info.stack;
+    const gal = m31Galaxy(stack);
+    const scl = W/900;                                  // 等比贴合（cover）
+    c.drawImage(gal, 0, (H - 900*scl)/2, 900*scl, 900*scl);
+    m31Stars(c, W, H);                                  // 前景恒星：逐帧绘制，保持锐利
+    m31Finish(c, W, H, stack);                          // 噪点 + 渐晕
+    /* 目标识别框：旋转椭圆的包围盒 */
+    const A = W*0.32, cx = W*0.5, cy = H*0.5;
+    detectBox(c, cx - A*0.85, cy + A*0.03 - A*0.45, A*1.70, A*0.90, 'M31 星系', info.conf);
+    /* 伴星系标注 */
+    const PA = -35*DEG;
+    const rot = (x,y) => [cx + x*Math.cos(PA) - y*Math.sin(PA),
+                          cy + x*Math.sin(PA) + y*Math.cos(PA)];
+    c.font = '13px Consolas, monospace';
+    c.fillStyle = 'rgba(160,215,255,.85)';
+    const q32 = rot(-0.05*A, 0.27*A);  c.fillText('M32',  q32[0] + A*0.09, q32[1] + 5);
+    const q11 = rot(-0.36*A, -0.17*A); c.fillText('M110', q11[0] + A*0.15, q11[1] + 5);
+    c.fillStyle = 'rgba(255,209,102,.85)';
+    c.fillText('ALGO: deepsky-stack v1.0（星上多帧叠加）', 12, H-34);
   }
   /* 通用叠加：时间戳与帧号 */
   c.fillStyle='rgba(140,200,255,.72)'; c.font='13px Consolas, monospace';
