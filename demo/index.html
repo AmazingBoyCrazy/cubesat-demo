@@ -2633,11 +2633,17 @@ function drawPortImage(c, W, H, info){
 
 function drawPayload(info){
   const cv = pwCv(), c = cv.getContext('2d');
-  /* 全屏窗口：画布按容器实际尺寸 × DPR 设置，保证清晰 */
-  const box = cv.parentElement;
+  /* 画布内部分辨率按【画布自身的显示尺寸】设定，而不是父容器的 client 尺寸：
+     内部分辨率的宽高比一旦与实际显示宽高比不一致，绘制内容就会被显示层拉伸
+     （纯净版窗口很宽时尤其明显）。用元素自身的 rect 取尺寸可保证两者永远一致。 */
+  const rect = cv.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const cw = Math.max(320, box.clientWidth || 1120);
-  const ch = Math.max(200, box.clientHeight || 660);
+  let cw = Math.round(rect.width), ch = Math.round(rect.height);
+  if (cw < 8 || ch < 8){                       // 布局尚未完成 → 退回父容器尺寸
+    const box = cv.parentElement;
+    cw = Math.max(320, box.clientWidth || 1120);
+    ch = Math.max(200, box.clientHeight || 660);
+  }
   if (cv.width !== Math.round(cw*dpr) || cv.height !== Math.round(ch*dpr)) {
     cv.width  = Math.round(cw*dpr);
     cv.height = Math.round(ch*dpr);
