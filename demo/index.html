@@ -2638,17 +2638,23 @@ function drawPortImage(c, W, H, info){
 
 function drawPayload(info){
   const cv = pwCv(), c = cv.getContext('2d');
-  /* 成像画面用【固定 16:9】，在可用空间内等比缩放并居中 ——
-     不随窗口宽度铺满：干净版没有右侧面板、窗口宽一倍，
-     若让画布跟着铺满，同一段成像在两个版本里的构图会完全不同。
-     同时内部分辨率与显示尺寸同比例 → 不存在显示拉伸。 */
-  const AR = 16/9, MAXW = 1280;
-  const box = cv.parentElement;
-  const availW = Math.max(320, box.clientWidth || 1120);
-  const availH = Math.max(180, box.clientHeight || 660);
-  let cw = Math.min(availW, MAXW), ch = cw/AR;
-  if (ch > availH){ ch = availH; cw = ch*AR; }
-  cw = Math.round(cw); ch = Math.round(ch);
+  /* 成像画面固定 16:9，【弹窗尺寸与之相同】——
+     若只固定画面而让弹窗铺满可用宽度，宽屏（纯净版没有右侧面板）
+     下弹窗会撑得很宽、画面缩在中间，两侧留下大片黑边。
+     这里由演示区高度反推画面高度，弹窗宽度 = 画面宽度。
+     内部分辨率与显示尺寸同比例 → 不存在显示拉伸。 */
+  const el = $('payloadWin');
+  const stageW = ($('stage').clientWidth  || 1100);
+  const stageH = ($('stage').clientHeight || 600);
+  const HEAD_H = 39, FOOT_H = 56;            // 标题栏 / 页脚（页脚文字较长，按两行预留）
+  let ch = Math.min(400, Math.max(200, stageH - 205));
+  let cw = Math.round(ch*16/9);
+  const cwMax = Math.min(900, stageW - 130);
+  if (cw > cwMax){ cw = Math.round(cwMax); ch = Math.round(cw*9/16); }
+  if (el.style.width !== cw+'px'){
+    el.style.width  = cw + 'px';
+    el.style.height = (ch + HEAD_H + FOOT_H) + 'px';
+  }
   if (cv.style.width !== cw+'px'){ cv.style.width = cw+'px'; cv.style.height = ch+'px'; }
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   if (cv.width !== Math.round(cw*dpr) || cv.height !== Math.round(ch*dpr)) {
