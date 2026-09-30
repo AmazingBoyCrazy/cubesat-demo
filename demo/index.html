@@ -2498,79 +2498,85 @@ function drawApproachImage(c, W, H, info){
    全部按真实地物尺度绘制：航母 333 m×76 m、突堤宽 20 m、货轮 180~200 m。
    若用地球贴图裁切会糊成大陆尺度，所以这里按地物尺度程序化绘制。 */
 function drawPortImage(c, W, H, info){
-  const U = W/1150;                       // 像素/米
-  const M = v => v*U;
+  /* 内容包围盒 1150 m × 550 m —— 等比适配画布：
+     只按宽度定标会在"纯净版"这种宽窗口下把内容放大到垂直裁切，
+     这里改用 min(宽比, 高比) 并居中，任何窗口比例都不裁切、不拉伸。 */
+  const CW = 1150, CH = 550;
+  const sc = Math.min(W/CW, H/CH);
+  const ox = (W - CW*sc)/2, oy = (H - CH*sc)/2;
+  const X = v => ox + v*sc;                 // 米 → 画布 x
+  const Y = v => oy + v*sc;                 // 米 → 画布 y
+  const M = v => v*sc;                      // 长度（宽/高/半径）
   const rnd = mulberry32(77113);
 
-  /* ---- 水体 ---- */
+  /* ---- 水体（铺满整个画布，含适配留边） ---- */
   const wg = c.createLinearGradient(0, 0, W, H);
   wg.addColorStop(0,'#0a1f33'); wg.addColorStop(.45,'#123350'); wg.addColorStop(1,'#07182a');
   c.fillStyle = wg; c.fillRect(0,0,W,H);
-  for (let i=0;i<560;i++){                // 涌浪反光（细密横纹）
+  for (let i=0;i<560;i++){
     c.fillStyle = 'rgba(150,205,245,'+(0.015+rnd()*0.055).toFixed(3)+')';
     c.fillRect(rnd()*W, rnd()*H, M(3+rnd()*15), Math.max(1, M(0.7)));
   }
 
-  /* ---- 陆域（右侧）：港区城市 —— 建筑 / 植被 / 道路分层 ---- */
+  /* ---- 陆域（右侧；一直铺到画布右缘） ---- */
   c.fillStyle = '#4b4e47';
-  c.fillRect(M(700), 0, W-M(700), H);
-  for (let i=0;i<70;i++){                 // 植被（暗绿斑块）
+  c.fillRect(X(700), 0, W - X(700), H);
+  for (let i=0;i<70;i++){
     c.fillStyle = 'rgba('+(38+rnd()*26|0)+','+(56+rnd()*30|0)+','+(36+rnd()*22|0)+','+(0.30+rnd()*0.35).toFixed(2)+')';
     c.beginPath();
-    c.ellipse(M(705)+rnd()*(W-M(710)), rnd()*H, M(10+rnd()*40), M(8+rnd()*26), rnd()*3, 0, 7);
+    c.ellipse(X(705)+rnd()*(W-X(710)), rnd()*H, M(10+rnd()*40), M(8+rnd()*26), rnd()*3, 0, 7);
     c.fill();
   }
-  for (let i=0;i<34;i++){                 // 道路（深灰直线）
+  for (let i=0;i<34;i++){
     c.strokeStyle = 'rgba(58,60,58,.55)'; c.lineWidth = Math.max(1, M(2.2+rnd()*4));
     c.beginPath();
-    if (rnd() < 0.5){ const y = rnd()*H; c.moveTo(M(702), y); c.lineTo(W, y + (rnd()-0.5)*M(30)); }
-    else            { const x = M(700) + rnd()*(W-M(700)); c.moveTo(x, 0); c.lineTo(x + (rnd()-0.5)*M(30), H); }
+    if (rnd() < 0.5){ const y = rnd()*H; c.moveTo(X(702), y); c.lineTo(W, y + (rnd()-0.5)*M(30)); }
+    else            { const x = X(700) + rnd()*(W-X(700)); c.moveTo(x, 0); c.lineTo(x + (rnd()-0.5)*M(30), H); }
     c.stroke();
   }
-  for (let i=0;i<230;i++){                // 建筑（浅灰 / 白 / 砖红）
+  for (let i=0;i<230;i++){
     const t = rnd();
     const col = t < 0.55 ? 'rgba('+(168+rnd()*60|0)+','+(168+rnd()*54|0)+','+(164+rnd()*50|0)+','
               : t < 0.82 ? 'rgba('+(196+rnd()*54|0)+','+(196+rnd()*50|0)+','+(194+rnd()*48|0)+','
                          : 'rgba('+(120+rnd()*48|0)+','+(92+rnd()*34|0)+','+(78+rnd()*28|0)+',';
     c.fillStyle = col + (0.35+rnd()*0.45).toFixed(2)+')';
-    c.fillRect(M(702)+rnd()*(W-M(712)), rnd()*H, M(7+rnd()*30), M(6+rnd()*24));
+    c.fillRect(X(702)+rnd()*(W-X(712)), rnd()*H, M(7+rnd()*30), M(6+rnd()*24));
   }
   c.strokeStyle = 'rgba(232,240,246,.55)'; c.lineWidth = Math.max(1.2, M(2));
-  c.beginPath(); c.moveTo(M(700), 0); c.lineTo(M(700), H); c.stroke();   // 码头岸线
+  c.beginPath(); c.moveTo(X(700), 0); c.lineTo(X(700), H); c.stroke();
 
-  /* ---- 突堤（3 条，伸入水面） ---- */
+  /* ---- 突堤 ---- */
   for (const py of [110, 275, 440]){
     c.fillStyle = '#6a6b61';
-    c.fillRect(M(330), M(py-10), M(370), M(20));
+    c.fillRect(X(330), Y(py-10), M(370), M(20));
     c.strokeStyle = 'rgba(232,240,246,.5)'; c.lineWidth = Math.max(1, M(1.6));
-    c.strokeRect(M(330), M(py-10), M(370), M(20));
+    c.strokeRect(X(330), Y(py-10), M(370), M(20));
   }
 
-  /* ---- 集装箱堆场（成排，颜色杂乱 —— 真实卫星图中的典型观感） ---- */
+  /* ---- 集装箱堆场 ---- */
   const cols = ['#a5483c','#3f6b9c','#4d7a52','#b08a45','#8a8f96','#7d4a6b'];
-  for (let r=0;r<4;r++) for (let i=0;i<16;i++){
+  for (let r=0;r<4;r++) for (let k=0;k<16;k++){
     c.globalAlpha = 0.88;
     c.fillStyle = cols[(rnd()*cols.length)|0];
-    c.fillRect(M(742 + i*23), M(20 + r*19), M(19), M(14));
+    c.fillRect(X(742 + k*23), Y(20 + r*19), M(19), M(14));
   }
   c.globalAlpha = 1;
 
-  /* ---- 库房（陆域下部） ---- */
-  for (let i=0;i<5;i++){
-    const y = M(352 + i*34);
-    c.fillStyle = '#8b897e'; c.fillRect(M(766), y, M(300), M(22));
+  /* ---- 库房 ---- */
+  for (let k=0;k<5;k++){
+    c.fillStyle = '#8b897e'; c.fillRect(X(766), Y(352 + k*34), M(300), M(22));
     c.strokeStyle = 'rgba(42,48,54,.45)'; c.lineWidth = Math.max(1, M(1.2));
-    c.strokeRect(M(766), y, M(300), M(22));
+    c.strokeRect(X(766), Y(352 + k*34), M(300), M(22));
   }
 
   /* ---- 靠泊货轮 ---- */
   const cargo = (x0, y0, L, B) => {
-    c.save(); c.translate(M(x0), M(y0));
+    c.save(); c.translate(X(x0), Y(y0));
     c.fillStyle = '#3a4854'; c.fillRect(0, -M(B/2), M(L), M(B));
     c.fillStyle = '#6d7a86'; c.fillRect(M(L*0.80), -M(B*0.40), M(L*0.19), M(B*0.80));
-    for (let i=0;i<Math.floor(L/26);i++){
+    for (let k=0;k<Math.floor(L/26);k++){
       c.fillStyle = cols[(rnd()*cols.length)|0];
-      c.fillRect(M(5+i*26), -M(B*0.32), M(20), M(B*0.64));
+      c.fillRect(M(5+k*26), -M(B*0.32), M(20), M(B*0.64));
     }
     c.strokeStyle='rgba(24,32,40,.5)'; c.lineWidth=Math.max(1,M(1.4));
     c.strokeRect(0, -M(B/2), M(L), M(B));
@@ -2582,8 +2588,8 @@ function drawPortImage(c, W, H, info){
   /* ---- 航空母舰（俯视，舰首朝左） ---- */
   (function(){
     const x0 = 130, yc = 338, L = 333, B = 76;
-    c.save(); c.translate(M(x0), M(yc));
-    c.beginPath();                                  // 飞行甲板（舰首收窄）
+    c.save(); c.translate(X(x0), Y(yc));
+    c.beginPath();
     c.moveTo(0, -M(B*0.40));
     c.lineTo(M(L*0.10), -M(B*0.50));
     c.lineTo(M(L*0.88), -M(B*0.50));
@@ -2597,28 +2603,26 @@ function drawPortImage(c, W, H, info){
     c.fillStyle = dg; c.fill();
     c.strokeStyle='rgba(32,42,52,.6)'; c.lineWidth=Math.max(1, M(2.2)); c.stroke();
     c.strokeStyle='rgba(246,249,252,.55)'; c.lineWidth=Math.max(1, M(1.8));
-    c.beginPath(); c.moveTo(M(L*0.26), -M(B*0.36)); c.lineTo(M(L*0.95), M(B*0.28)); c.stroke();  // 斜角甲板
-    c.setLineDash([M(10), M(8)]);                                                              // 跑道中线
+    c.beginPath(); c.moveTo(M(L*0.26), -M(B*0.36)); c.lineTo(M(L*0.95), M(B*0.28)); c.stroke();
+    c.setLineDash([M(10), M(8)]);
     c.beginPath(); c.moveTo(M(L*0.06), 0); c.lineTo(M(L*0.82), M(B*0.06)); c.stroke();
     c.setLineDash([]);
-    c.fillStyle = '#5d6b76';                                                                    // 舰岛（右舷偏后）
+    c.fillStyle = '#5d6b76';
     c.fillRect(M(L*0.60), -M(B*0.50), M(L*0.15), M(B*0.34));
     c.strokeStyle='rgba(28,38,46,.65)'; c.lineWidth=Math.max(1,M(1.6));
     c.strokeRect(M(L*0.60), -M(B*0.50), M(L*0.15), M(B*0.34));
-    c.fillStyle = 'rgba(212,220,228,.5)';                                                       // 升降机
+    c.fillStyle = 'rgba(212,220,228,.5)';
     c.fillRect(M(L*0.36), M(B*0.08), M(L*0.11), M(B*0.28));
-    c.fillStyle = 'rgba(240,244,248,.85)';                                                      // 甲板舰载机
-    for (let i=0;i<7;i++){
-      c.fillRect(M(L*(0.12 + rnd()*0.60)), M(B*(rnd()*0.44 - 0.20)), M(11), M(3.2));
-    }
+    c.fillStyle = 'rgba(240,244,248,.85)';
+    for (let k=0;k<7;k++) c.fillRect(M(L*(0.12 + rnd()*0.60)), M(B*(rnd()*0.44 - 0.20)), M(11), M(3.2));
     c.restore();
   })();
 
   /* ---- 判读注记 ---- */
-  detectBox(c, M(114), M(288), M(378), M(100), '航空母舰', info.conf);
-  detectBox(c, M(716), M(330), M(424), M(200), '港口设施', (Math.max(0.80, parseFloat(info.conf)-0.04)).toFixed(2));
+  detectBox(c, X(114), Y(288), M(378), M(100), '航空母舰', info.conf);
+  detectBox(c, X(716), Y(330), M(424), M(200), '港口设施', (Math.max(0.80, parseFloat(info.conf)-0.04)).toFixed(2));
 
-  /* ---- 传感器颗粒（真实星下点图像的观感） ---- */
+  /* ---- 传感器颗粒 ---- */
   for (let i=0;i<2600;i++){
     c.fillStyle = 'rgba(255,255,255,'+(0.012+rnd()*0.030).toFixed(3)+')';
     c.fillRect(rnd()*W, rnd()*H, 1.4, 1.4);
@@ -2734,13 +2738,16 @@ function drawPayload(info){
   } else if (info.src === 'm31'){
     /* 深空观测：多帧叠加合成后的仙女座星系图像 */
     const stack = info.stack === undefined ? 1 : info.stack;
-    const gal = m31Galaxy(stack);
-    const scl = W/900;                                  // 等比贴合（cover）
-    c.drawImage(gal, 0, (H - 900*scl)/2, 900*scl, 900*scl);
+    const gal = m31Galaxy(stack);                       // 900×900 源图，星系居中
+    /* 星系在源图中的包围盒为 482×358（含 35° 倾角）——
+       按其留边距等比适配：只按宽度定标会在宽窗口下把星系垂直裁成一条横带 */
+    const scl = Math.min(W*0.94/482, H*0.94/358);
+    const dw = 900*scl;
+    c.drawImage(gal, (W-dw)/2, (H-dw)/2, dw, dw);
     m31Stars(c, W, H);                                  // 前景恒星：逐帧绘制，保持锐利
     m31Finish(c, W, H, stack);                          // 噪点 + 渐晕
-    /* 目标识别框：旋转椭圆的包围盒 */
-    const A = W*0.32, cx = W*0.5, cy = H*0.5;
+    /* 目标识别框：旋转椭圆的包围盒（A 由同一比例推出，与画面严格对齐） */
+    const A = 288*scl, cx = W*0.5, cy = H*0.5;
     detectBox(c, cx - A*0.85, cy + A*0.03 - A*0.45, A*1.70, A*0.90, 'M31 星系', info.conf);
     /* 伴星系标注 */
     const PA = -35*DEG;
