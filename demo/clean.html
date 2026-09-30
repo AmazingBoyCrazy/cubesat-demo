@@ -120,7 +120,8 @@
      默认即为"全屏"尺寸：覆盖整个演示区，关闭时收回 ---- */
   #payloadWin{
     position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.94);
-    width:min(1480px, calc(100% - 108px));height:calc(100% - 180px);margin-top:-28px;
+    width:min(1180px, calc(100% - 108px));height:min(748px, calc(100% - 180px));
+    margin-top:-28px;
     display:flex;flex-direction:column;
     background:rgba(9,15,28,.96);border:1px solid rgba(90,140,220,.7);border-radius:12px;
     overflow:hidden;box-shadow:0 22px 60px rgba(0,0,0,.78);
@@ -138,8 +139,10 @@
   #payloadWin .hd .md{margin-left:auto;color:var(--amber);font-size:14px;font-weight:700}
   #payloadWin .cam-body{flex:1;position:relative;min-height:0;background:#04070d;
     display:flex;align-items:center;justify-content:center}
-  /* 画面区域尺寸由 JS 按固定 16:9 设定（不再随窗口宽度铺满） */
-  #payloadWin canvas{display:block;background:#04070d}
+  /* 画面区域尺寸由 JS 按固定 16:9 设定；max/object-fit 是兜底，
+     保证任何情况下都不会溢出容器或被拉伸 */
+  #payloadWin canvas{display:block;background:#04070d;
+    max-width:100%;max-height:100%;object-fit:contain}
   #payloadWin .ft{padding:9px 16px;font-size:13px;color:#9db3d4;flex:0 0 auto;
     background:rgba(20,32,54,.92);border-top:1px solid rgba(60,90,140,.45);
     display:flex;gap:16px;flex-wrap:wrap;font-family:Consolas,monospace}
@@ -348,7 +351,7 @@
       <div id="payloadWin">
         <div class="hd"><span class="dot"></span><span>载荷观测窗口</span>
           <span class="md" id="pwMode">月球定标</span></div>
-        <div class="cam-body"><canvas id="pwCanvas" width="1120" height="660"></canvas></div>
+        <div class="cam-body"><canvas id="pwCanvas" width="1120" height="630"></canvas></div>
         <div class="ft">
           <span id="pwDet">目标锁定 <b>月球</b></span>
           <span>置信度 <b id="pwConf">0.98</b></span>
